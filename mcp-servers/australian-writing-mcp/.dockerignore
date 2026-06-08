@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+dist/
+build/
+reference-projects/
+tests/
+tools/
+deploy/
+ASSESSMENT.md
+BRIEF.md
+NOTICE

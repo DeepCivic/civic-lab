@@ -1,0 +1,24 @@
+Australian Writing MCP
+======================
+
+This project includes work derived from Harper (https://github.com/Automattic/harper),
+Copyright the Harper contributors, licensed under the Apache License, Version 2.0.
+
+Derived components:
+
+  * src/australian_writing/indefinite_article.py
+      A Python port of Harper's `starts_with_vowel` logic
+      (harper-core/src/indefinite_article.rs).
+
+  * src/australian_writing/_phrase_data.py
+      Phrase-correction data extracted from Harper's `phrase_set_corrections`
+      rule set (harper-core/src/linting/phrase_set_corrections/mod.rs).
+      Regenerate with tools/generate_phrase_data.py.
+
+A copy of the Apache License 2.0 is available at:
+  https://www.apache.org/licenses/LICENSE-2.0
+
+----
+
+This project also bundles the en_AU Hunspell dictionary; see
+src/australian_writing/dictionaries/en_AU/LICENSE for its terms.
