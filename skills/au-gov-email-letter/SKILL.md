@@ -8,11 +8,11 @@ description: >
 
 # AU Government Emails & Letters
 
-**What this skill does:**
+**This skill is for:**
 - Draft or review emails and letters that follow APS writing standards.
 - Always output the final draft with a filled‑in “Before Sending” checklist.
 
-**What this skill does NOT do:**
+**Do not use this skill for:**
 - Write speeches, reports, policy documents, or template designs.
 - Provide policy or legal content; the user supplies facts and intent.
 
@@ -97,9 +97,9 @@ Remove *you and* to check: *spoke to me* → *spoke to you and me*; *I will atte
 
 ---
 
-## Before Sending – Checklist
+## Agent QA Checklist
 - ☐ Email subject has action label? Letter has correct Re: and file refs?
-- ☐ Purpose in first 2 lines?
+- ☐ Purpose in first 2 lines or less?
 - ☐ No sentence over 25 words?
 - ☐ Active voice throughout?
 - ☐ Collective nouns singular (unless separate actions clear)?
@@ -107,7 +107,6 @@ Remove *you and* to check: *spoke to me* → *spoke to you and me*; *I will atte
 - ☐ Jargon, idioms, metaphors, double negatives removed?
 - ☐ Inclusive language applied?
 - ☐ Australian English spellcheck done?
-- ☐ Walked away and re‑read?
 
 ---
 

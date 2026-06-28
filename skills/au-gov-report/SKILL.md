@@ -90,15 +90,9 @@ Same foundation as all government writing:
    - Reference list / bibliography  
    - Index (for long or print‑first reports)
 
-### Tabling & compliance
-- **Tabled in Parliament:** follow Tabling guidelines; electronic version must match printed version exactly and be accessible.  
-- **Annual reports:** meet Department of Finance content requirements and publish via Transparency Portal.  
-- **Information management:** classify per PSPF; manage as a record under the Archives Act 1983.  
-- **Copyright:** use open access licence (e.g., Creative Commons) for government material; fulfil legal deposit.
-
 ---
 
-## Before Finalising – Checklist
+## Agent QA Checklist
 - ☐ PDF links tagged with size and format?  
 - ☐ Landing page/cover has title, author, date, summary?  
 - ☐ All preliminary parts present and ordered correctly?  
@@ -110,13 +104,12 @@ Same foundation as all government writing:
 - ☐ Tabling/compliance requirements met (if applicable)?  
 - ☐ Security classification marked (if required)?  
 - ☐ Australian English spellcheck done?  
-- ☐ Walked away and re‑read?
 
 ---
 
 ## Guardrails
-- Never alter the user’s facts, policy, or recommendations.   
-- When a mandatory section (e.g., letter of transmittal) is unclear, quickly confirm with the user before drafting.  
+- Never alter the user’s facts, policy, or recommendations.  
+- When a mandatory section (e.g., letter of transmittal) is unclear, ask user for direction.
 - For tabled or annual reports, verify the user is aware of parliamentary printing and Transparency Portal rules.  
 - Always use Australian spelling and conventions.  
 - Never deliver a draft without the completed checklist.
