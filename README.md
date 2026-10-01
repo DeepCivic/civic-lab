@@ -17,6 +17,7 @@ Australian Government and go-to-market contexts:
 | [au-gov-report](skills/au-gov-report/SKILL.md) | Draft or review internal reports in Australian Government style. |
 | [gtm-adoption-assumptions](skills/gtm-adoption-assumptions/SKILL.md) | Develop go-to-market and adoption assumptions for a product or service. |
 | [maturity-model-architect](skills/maturity-model-architect/SKILL.md) | Collaboratively build a capability maturity model from one or more datasets. |
+| [oss-assessment](skills/oss-assessment/SKILL.md) | Evidence-first assessment of an OSS repository against the DPG Standard and OpenSSF guide, with emphasis on architecture and code. |
 | [oss-solution-architect](skills/oss-solution-architect/SKILL.md) | Turn requirements into an annotated OSS-based architecture with open decisions and a backlog. |
 
 ## `mcp-servers/`
@@ -39,6 +40,8 @@ civic-lab/
 │   ├── gtm-adoption-assumptions/
 │   │   └── SKILL.md
 │   ├── maturity-model-architect/
+│   │   └── SKILL.md
+│   ├── oss-assessment/
 │   │   └── SKILL.md
 │   └── oss-solution-architect/
 │       └── SKILL.md
