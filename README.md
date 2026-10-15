@@ -14,6 +14,7 @@ Australian Government and go-to-market contexts:
 | Skill | Purpose |
 | --- | --- |
 | [au-gov-email-letter](skills/au-gov-email-letter/SKILL.md) | Draft or review emails/letters in Australian Government style. |
+| [au-gov-formal-writing](skills/au-gov-formal-writing/SKILL.md) | Draft or review formal Australian Government content using formal tone, per the Style Manual. |
 | [au-gov-report](skills/au-gov-report/SKILL.md) | Draft or review internal reports in Australian Government style. |
 | [gtm-adoption-assumptions](skills/gtm-adoption-assumptions/SKILL.md) | Develop go-to-market and adoption assumptions for a product or service. |
 | [maturity-model-architect](skills/maturity-model-architect/SKILL.md) | Collaboratively build a capability maturity model from one or more datasets. |
@@ -34,6 +35,8 @@ Australian Government and go-to-market contexts:
 civic-lab/
 ├── skills/                         # One directory per skill, each with a SKILL.md
 │   ├── au-gov-email-letter/
+│   │   └── SKILL.md
+│   ├── au-gov-formal-writing/
 │   │   └── SKILL.md
 │   ├── au-gov-report/
 │   │   └── SKILL.md
