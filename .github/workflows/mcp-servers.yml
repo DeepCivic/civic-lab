@@ -1,0 +1,70 @@
+# Test every MCP server package under mcp-servers/ (any directory with a
+# pyproject.toml), on Linux, macOS and Windows, at the newest and the lowest
+# declared dependency versions. Same shape as modelcontextprotocol/servers:
+# packages are discovered, not listed, so a new server needs no CI changes.
+name: MCP servers
+
+on:
+  push:
+    branches: [main]
+    paths: ["mcp-servers/**", ".github/workflows/mcp-servers.yml", ".github/scripts/**"]
+  pull_request:
+    paths: ["mcp-servers/**", ".github/workflows/mcp-servers.yml", ".github/scripts/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.find.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: find
+        run: |
+          pkgs=$(find mcp-servers -mindepth 2 -maxdepth 2 -name pyproject.toml \
+                 | xargs -n1 dirname | xargs -n1 basename | sort \
+                 | jq -R . | jq -cs .)
+          echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
+          echo "found: $pkgs"
+
+  test:
+    needs: detect
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.detect.outputs.packages) }}
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.10", "3.13"]
+        resolution: [highest]
+        include:
+          # Proves the declared minimum versions really work.
+          - os: ubuntu-latest
+            python: "3.10"
+            resolution: lowest-direct
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.package }} · ${{ matrix.os }} · py${{ matrix.python }} · ${{ matrix.resolution }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: mcp-servers/${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install
+        run: |
+          uv venv --python ${{ matrix.python }}
+          uv pip install --resolution ${{ matrix.resolution }} -e ".[dev]"
+      - name: Unit tests
+        run: uv run --no-sync python -m pytest -q
+      - name: Server starts and lists tools (stdio)
+        run: uv run --no-sync python ../../.github/scripts/mcp_smoke.py
+      - name: Build sdist and wheel
+        if: matrix.os == 'ubuntu-latest' && matrix.resolution == 'highest'
+        run: uv build

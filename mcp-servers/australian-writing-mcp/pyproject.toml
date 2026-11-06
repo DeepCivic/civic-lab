@@ -5,9 +5,9 @@ description = "MCP server providing deterministic Australian English writing che
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mcp>=1.0",
+    "mcp>=1.22,<2",  # 2.x renamed FastMCP; older 1.x breaks on current pydantic
     "spylls>=0.1.7",
-    "textstat>=0.7.0",
+    "textstat>=0.7.8",  # older releases need pkg_resources / differ in syllable counts
 ]
 
 [project.optional-dependencies]

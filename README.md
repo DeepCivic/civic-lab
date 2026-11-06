@@ -27,12 +27,27 @@ Australian Government and go-to-market contexts:
 
 | Server | Purpose |
 | --- | --- |
+| [abr-mcp](mcp-servers/abr-mcp/) | Australian Business Register (ABN Lookup) data: offline ABN/ACN validation, a local bulk-extract index, and optional live ABR web services. |
 | [australian-writing-mcp](mcp-servers/australian-writing-mcp/) | Deterministic Australian English writing checks: spelling, grammar, and reading level. |
+
+Each server is an independent Python package (its own `pyproject.toml`),
+released on its own, in the same way as
+[modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers):
+
+- **CI** ([mcp-servers.yml](.github/workflows/mcp-servers.yml)) discovers
+  every `mcp-servers/*/pyproject.toml`. It tests each package on Linux, macOS
+  and Windows, on Python 3.10 and 3.13, and at the lowest declared dependency
+  versions. It also launches each server over stdio and lists its tools.
+- **Releases** ([mcp-release.yml](.github/workflows/mcp-release.yml)) run
+  when you push a `<package>-v<version>` tag. They publish to PyPI, plus
+  ghcr.io, an MCPB bundle and the MCP Registry for packages that include a
+  `Dockerfile`, `manifest.json` or `server.json`.
 
 ## Repository layout
 
 ```
 civic-lab/
+├── .github/                        # CI + per-package release workflows
 ├── skills/                         # One directory per skill, each with a SKILL.md
 │   ├── au-gov-email-letter/
 │   │   └── SKILL.md
@@ -49,6 +64,7 @@ civic-lab/
 │   └── oss-solution-architect/
 │       └── SKILL.md
 └── mcp-servers/
+    ├── abr-mcp/                    # MCP server: ABN Lookup / ABR data
     └── australian-writing-mcp/     # MCP server: AU English writing checks
 ```
 
@@ -60,3 +76,5 @@ Individual subprojects may bundle third-party data or ported code under their
 own terms; these are attributed in-place (for example,
 [mcp-servers/australian-writing-mcp/NOTICE](mcp-servers/australian-writing-mcp/NOTICE) and the
 bundled dictionary's licence). See each subproject's `README` for details.
+`abr-mcp` bundles no register data; it reads the ABN Bulk Extract you download
+(CC BY 3.0 AU), see [mcp-servers/abr-mcp/NOTICE](mcp-servers/abr-mcp/NOTICE).

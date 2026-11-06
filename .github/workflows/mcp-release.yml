@@ -1,0 +1,141 @@
+# Release one MCP server package from this monorepo.
+#
+# Push a tag named <package>-v<version>, e.g. `abr-mcp-v0.1.0`. The version
+# must equal the package's pyproject.toml version. Each step runs only if the
+# package has the matching file:
+#
+#   pyproject.toml -> PyPI         (trusted publishing; no token stored)
+#   Dockerfile     -> ghcr.io/<owner>/<package>:<version> (+ :latest), amd64+arm64
+#   manifest.json  -> <package>-<version>.mcpb attached to a GitHub release
+#   server.json    -> official MCP Registry (GitHub OIDC), after the above exist
+#
+# One-time setup (repository admin):
+#   * PyPI: add a trusted publisher for this repo, workflow `mcp-release.yml`,
+#     environment `pypi` (https://docs.pypi.org/trusted-publishers/).
+#   * Create the `pypi` environment in repo settings (add required reviewers to
+#     gate releases).
+name: MCP server release
+
+on:
+  push:
+    tags: ["*-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      package: ${{ steps.m.outputs.package }}
+      version: ${{ steps.m.outputs.version }}
+      dir: ${{ steps.m.outputs.dir }}
+      docker: ${{ steps.m.outputs.docker }}
+      mcpb: ${{ steps.m.outputs.mcpb }}
+      registry: ${{ steps.m.outputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: m
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          package="${tag%-v*}"; version="${tag##*-v}"; dir="mcp-servers/$package"
+          test -f "$dir/pyproject.toml" || { echo "::error::no package at $dir"; exit 1; }
+          declared=$(grep -m1 -E '^version = ' "$dir/pyproject.toml" | cut -d'"' -f2)
+          [ "$declared" = "$version" ] || { echo "::error::tag $version != pyproject $declared"; exit 1; }
+          echo "package=$package" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "docker=$([ -f "$dir/Dockerfile" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "mcpb=$([ -f "$dir/manifest.json" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "registry=$([ -f "$dir/server.json" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  pypi:
+    needs: meta
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build --out-dir dist
+        working-directory: ${{ needs.meta.outputs.dir }}
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ needs.meta.outputs.dir }}/dist
+
+  docker:
+    needs: meta
+    if: needs.meta.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ needs.meta.outputs.package }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ needs.meta.outputs.dir }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.name.outputs.image }}:${{ needs.meta.outputs.version }}
+            ${{ steps.name.outputs.image }}:latest
+
+  mcpb:
+    needs: meta
+    if: needs.meta.outputs.mcpb == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate and pack
+        run: |
+          out="$RUNNER_TEMP/${{ needs.meta.outputs.package }}-${{ needs.meta.outputs.version }}.mcpb"
+          npx -y @anthropic-ai/mcpb validate "${{ needs.meta.outputs.dir }}/manifest.json"
+          npx -y @anthropic-ai/mcpb pack "${{ needs.meta.outputs.dir }}" "$out"
+          sha256sum "$out"
+          echo "MCPB=$out" >> "$GITHUB_ENV"
+      - name: Attach to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "${{ needs.meta.outputs.package }} ${{ needs.meta.outputs.version }}"
+          gh release upload "$GITHUB_REF_NAME" "$MCPB" --clobber
+
+  registry:
+    needs: [meta, pypi, docker]
+    if: always() && needs.meta.outputs.registry == 'true' && needs.pypi.result == 'success' && needs.docker.result != 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mcp-publisher
+        run: |
+          os=$(uname -s | tr '[:upper:]' '[:lower:]'); arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz" | tar xz mcp-publisher
+      - name: Publish server.json
+        working-directory: ${{ needs.meta.outputs.dir }}
+        run: |
+          # PyPI may take a moment to serve the new README (mcp-name check).
+          for i in 1 2 3 4 5; do
+            "$GITHUB_WORKSPACE/mcp-publisher" login github-oidc && "$GITHUB_WORKSPACE/mcp-publisher" publish && exit 0
+            sleep 30
+          done
+          exit 1

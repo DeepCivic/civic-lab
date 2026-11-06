@@ -1,0 +1,54 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.DeepCivic/abr-mcp",
+  "title": "ABN Lookup (unofficial client)",
+  "description": "Unofficial client: validate, look up and search ABNs/ACNs on the ABR.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/DeepCivic/civic-lab",
+    "source": "github",
+    "subfolder": "mcp-servers/abr-mcp"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "abr-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ABR_GUID",
+          "description": "ABN Lookup web services GUID (free: https://abr.business.gov.au/Tools/WebServices). Enables live lookups and name search.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "ABR_INDEX_PATH",
+          "description": "Path to a local bulk-extract index built with `abr-mcp update-index` (optional; offline use).",
+          "isRequired": false,
+          "format": "filepath"
+        }
+      ]
+    },
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/deepcivic/abr-mcp:0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ABR_GUID",
+          "description": "ABN Lookup web services GUID. Enables live lookups and name search.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
