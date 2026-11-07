@@ -1,7 +1,5 @@
 # ABR MCP
 
-<!-- mcp-name: io.github.DeepCivic/abr-mcp -->
-
 An [MCP](https://modelcontextprotocol.io) server that gives any LLM client
 reliable access to **Australian Business Register** (ABN Lookup) data.
 
@@ -29,7 +27,8 @@ reliable access to **Australian Business Register** (ABN Lookup) data.
    isn't an API.) No GUID yet? The validation tools work without one, and the
    [offline index](#offline-index-optional) needs none.
 2. Add the server to your MCP client. It needs [uv](https://docs.astral.sh/uv/);
-   `uvx` fetches and runs the server, with no separate install step.
+   `uvx` fetches it from this repository and runs it, with no separate install
+   step. Or use the [Docker image](#docker).
 
 **Claude Desktop / Claude Code** (`mcpServers`):
 
@@ -38,7 +37,7 @@ reliable access to **Australian Business Register** (ABN Lookup) data.
   "mcpServers": {
     "abr": {
       "command": "uvx",
-      "args": ["abr-mcp"],
+      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-mcp", "abr-mcp"],
       "env": { "ABR_GUID": "your-guid" }
     }
   }
@@ -52,20 +51,13 @@ reliable access to **Australian Business Register** (ABN Lookup) data.
   "servers": {
     "abr": {
       "command": "uvx",
-      "args": ["abr-mcp"],
+      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-mcp", "abr-mcp"],
       "env": { "ABR_GUID": "${input:abr_guid}" }
     }
   },
   "inputs": [{ "id": "abr_guid", "type": "promptString", "description": "ABN Lookup GUID", "password": true }]
 }
 ```
-
-Until the package is on PyPI, replace `"args": ["abr-mcp"]` with
-`"args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-mcp", "abr-mcp"]`.
-
-**Claude Desktop one-click install:** download `abr-mcp-<version>.mcpb` from
-the [releases](https://github.com/DeepCivic/civic-lab/releases) and open it.
-Desktop asks for the GUID and stores it securely.
 
 The validation tools work with no GUID and no index.
 
@@ -75,8 +67,9 @@ For offline use, bulk joins, or freedom from web-service rate limits, build a
 local index from the weekly [ABN Bulk Extract](https://data.gov.au/data/dataset/abn-bulk-extract):
 
 ```bash
-uvx abr-mcp update-index     # ~1 GB download, ~15 min build, ~7 GB index
-uvx abr-mcp status
+ABR="uvx --from git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-mcp abr-mcp"
+$ABR update-index     # ~1 GB download, ~15 min build, ~7 GB index
+$ABR status
 ```
 
 `update-index` downloads the extract from data.gov.au, builds the index and
@@ -237,13 +230,11 @@ over stdio and lists its tools.
 Push a tag named `abr-mcp-v<version>` that matches `pyproject.toml`.
 [mcp-release.yml](../../.github/workflows/mcp-release.yml) then publishes:
 
-- the package to PyPI, through trusted publishing;
 - the `amd64`/`arm64` image to `ghcr.io/deepcivic/abr-mcp`;
-- the `.mcpb` bundle to the GitHub release;
 - [server.json](server.json) to the [MCP Registry](https://registry.modelcontextprotocol.io).
 
-Bump the version in `pyproject.toml`, `src/abr_mcp/__init__.py`,
-`server.json` and `manifest.json`. A test fails if they disagree.
+The package is not published to PyPI. Bump the version in `pyproject.toml`,
+`src/abr_mcp/__init__.py` and `server.json`. A test fails if they disagree.
 
 ## Terms of use
 

@@ -115,8 +115,7 @@ class BuildReport:
 def default_index_path() -> Path:
     """``$ABR_INDEX_PATH``, else a per-user data directory."""
     env = (os.getenv("ABR_INDEX_PATH") or "").strip()
-    # MCPB hosts pass an unset user setting through literally as "${user_config.x}".
-    if env and not env.startswith("${"):
+    if env:
         return Path(env).expanduser()
     if os.name == "nt":
         base = Path(os.getenv("LOCALAPPDATA") or Path.home() / "AppData" / "Local")

@@ -265,15 +265,6 @@ def test_mcp_errors_keep_their_message(monkeypatch):
         asyncio.run(server.mcp.call_tool("search_names", {"name": "acme"}))
 
 
-def test_unset_mcpb_placeholders_are_ignored(monkeypatch):
-    from abr_mcp.index import default_index_path
-
-    monkeypatch.setenv("ABR_GUID", "${user_config.abr_guid}")
-    monkeypatch.setenv("ABR_INDEX_PATH", "${user_config.index_path}")
-    assert not AbrWebClient().available()
-    assert "${" not in str(default_index_path())
-
-
 # ── ABR terms / guidance ─────────────────────────────────────────────────────
 
 

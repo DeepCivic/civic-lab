@@ -63,8 +63,6 @@ class AbrWebClient:
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self.guid = (guid if guid is not None else os.getenv("ABR_GUID", "")).strip()
-        if self.guid.startswith("${"):  # unset MCPB user setting, passed through literally
-            self.guid = ""
         self.base_url = base_url or os.getenv("ABR_WEB_BASE_URL", BASE_URL)
         self.timeout = timeout
         self.retries = retries
