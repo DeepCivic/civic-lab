@@ -3,7 +3,7 @@ name = "australian-writing-mcp"
 version = "0.1.0"
 description = "MCP server providing deterministic Australian English writing checks: spelling, grammar, and reading level."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.15"
 dependencies = [
     "mcp>=1.22,<2",  # 2.x renamed FastMCP; older 1.x breaks on current pydantic
     "spylls>=0.1.7",

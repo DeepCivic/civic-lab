@@ -263,9 +263,9 @@ npx @modelcontextprotocol/inspector uv run abr-mcp
 ```
 
 CI ([mcp-servers.yml](../../.github/workflows/mcp-servers.yml)) tests every
-server in `mcp-servers/` on Linux, macOS and Windows, on Python 3.10 and 3.13,
-and at the lowest declared dependency versions. It also launches each server
-over stdio and lists its tools.
+server in `mcp-servers/` on Linux, macOS and Windows, on the current stable
+Python, the only version supported. It also launches each server over stdio
+and lists its tools.
 
 ## Releasing
 

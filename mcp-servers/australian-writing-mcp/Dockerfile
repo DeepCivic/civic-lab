@@ -1,5 +1,5 @@
 # AWS Bedrock AgentCore Runtime requires linux/arm64.
-FROM --platform=linux/arm64 python:3.11-slim
+FROM --platform=linux/arm64 python:3.15-slim
 
 WORKDIR /app
 
