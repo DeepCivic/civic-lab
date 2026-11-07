@@ -64,7 +64,7 @@ def test_apps_present_and_future_text_dated():
 
 
 def test_local_only_text_not_shipped():
-    raw = (ROOT / "src/au_privacy_review/data/kb.json").read_text()
+    raw = (ROOT / "src/au_privacy_review/data/kb.json").read_text(encoding="utf-8")
     assert "lack of precision" in raw
     assert "Rehnquist CJ recently observed" not in raw
 

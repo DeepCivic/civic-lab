@@ -102,8 +102,8 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd in ("review", "threshold"):
         from . import review as _rv
 
-        b = _rv.build(kb, a.path, documents=a.doc, observations=json.loads(a.observations.read_text()) if a.observations else None,
-                      answers=json.loads(a.answers.read_text()) if a.answers else None, entity_type=a.entity_type,
+        b = _rv.build(kb, a.path, documents=a.doc, observations=json.loads(a.observations.read_text(encoding="utf-8")) if a.observations else None,
+                      answers=json.loads(a.answers.read_text(encoding="utf-8")) if a.answers else None, entity_type=a.entity_type,
                       kind=a.system_kind, exclude=a.exclude, digital_id_role=a.digital_id_role, project_name=a.name,
                       project_description=getattr(a, "description", None))
     if a.cmd == "review":
