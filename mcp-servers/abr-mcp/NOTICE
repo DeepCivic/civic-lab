@@ -1,0 +1,28 @@
+abr-mcp
+Copyright DeepCivic contributors. Licensed under the Apache License 2.0.
+
+abr-mcp is an unofficial, independent client. It is not affiliated with,
+endorsed or approved by the Australian Business Register, the Australian
+Taxation Office or the Commonwealth of Australia.
+
+This software contains no Australian Business Register data. It reads data
+that the user downloads separately:
+
+* ABN Lookup Bulk Extract — Australian Business Register, published on
+  data.gov.au (https://data.gov.au/data/dataset/abn-bulk-extract) under the
+  Creative Commons Attribution 3.0 Australia licence
+  (https://creativecommons.org/licenses/by/3.0/au/). Anyone redistributing an
+  index built from it, or outputs derived from it, must give attribution, for
+  example: "Contains ABN Lookup data from the Australian Business Register
+  (ABN Bulk Extract, data.gov.au), licensed under CC BY 3.0 AU."
+
+* ABN Lookup web services (optional) — live data from abr.business.gov.au,
+  used under the ABN Lookup Web Services Agreement that each user accepts
+  when registering for their own GUID
+  (https://abr.business.gov.au/Tools/WebServicesAgreement). No GUID is
+  included, and web-service responses are not cached or stored.
+
+The ABN and ACN check-digit algorithms are the published ATO and ASIC rules.
+The name-normalisation rule derives from DeepCivic's grants/procurement
+analysis, and the bulk-extract field projection from the Womblex `ingest-abn`
+register ingest (both DeepCivic projects).

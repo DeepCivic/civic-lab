@@ -1,0 +1,135 @@
+# Release one MCP server package from this monorepo.
+#
+# Push a tag named <package>-v<version>, e.g. `abr-mcp-v0.1.0`. The version
+# must equal the package's pyproject.toml version (and server.json's, if present).
+# Each step runs only if the package opts in:
+#
+#   Dockerfile     -> ghcr.io/<owner>/<package>:<version> (+ :latest), amd64+arm64
+#   server.json    -> official MCP Registry (GitHub OIDC), after the packages it lists exist
+#   server.json lists a "pypi" package -> PyPI (trusted publishing; no token stored).
+#                     PyPI is opt-in: a server whose server.json lists only its Docker
+#                     image is never published to PyPI.
+#
+# One-time setup (repository admin):
+#   * GHCR: after the first push of a new image, make the package public
+#     (GitHub > Packages > <package> > Package settings). The MCP Registry
+#     must be able to pull it to verify the io.modelcontextprotocol.server.name label.
+#   * PyPI, only for servers that opt in: add a trusted publisher for this repo,
+#     workflow `mcp-release.yml`, environment `pypi`
+#     (https://docs.pypi.org/trusted-publishers/), and create the `pypi`
+#     environment in repo settings (add required reviewers to gate releases).
+name: MCP server release
+
+on:
+  push:
+    tags: ["*-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      package: ${{ steps.m.outputs.package }}
+      version: ${{ steps.m.outputs.version }}
+      dir: ${{ steps.m.outputs.dir }}
+      docker: ${{ steps.m.outputs.docker }}
+      pypi: ${{ steps.m.outputs.pypi }}
+      registry: ${{ steps.m.outputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: m
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          package="${tag%-v*}"; version="${tag##*-v}"; dir="mcp-servers/$package"
+          test -f "$dir/pyproject.toml" || { echo "::error::no package at $dir"; exit 1; }
+          declared=$(grep -m1 -E '^version = ' "$dir/pyproject.toml" | cut -d'"' -f2)
+          [ "$declared" = "$version" ] || { echo "::error::tag $version != pyproject $declared"; exit 1; }
+          pypi=false
+          if [ -f "$dir/server.json" ]; then
+            [ "$(jq -r .version "$dir/server.json")" = "$version" ] \
+              || { echo "::error::server.json version != $version"; exit 1; }
+            jq -e '[.packages[]? | select(.registryType == "pypi")] | length > 0' "$dir/server.json" >/dev/null && pypi=true
+            if jq -e '[.packages[]? | select(.registryType == "oci")] | length > 0' "$dir/server.json" >/dev/null; then
+              [ -f "$dir/Dockerfile" ] || { echo "::error::server.json lists an OCI image but there is no Dockerfile"; exit 1; }
+            fi
+          fi
+          echo "pypi=$pypi" >> "$GITHUB_OUTPUT"
+          echo "package=$package" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "docker=$([ -f "$dir/Dockerfile" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "registry=$([ -f "$dir/server.json" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  pypi:
+    needs: meta
+    if: needs.meta.outputs.pypi == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build --out-dir dist
+        working-directory: ${{ needs.meta.outputs.dir }}
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ needs.meta.outputs.dir }}/dist
+
+  docker:
+    needs: meta
+    if: needs.meta.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ needs.meta.outputs.package }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ needs.meta.outputs.dir }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.name.outputs.image }}:${{ needs.meta.outputs.version }}
+            ${{ steps.name.outputs.image }}:latest
+
+  registry:
+    needs: [meta, pypi, docker]
+    # Runs once every package server.json lists has been published: PyPI and Docker each either
+    # succeeded or were not needed (skipped), and at least one of them ran.
+    if: >-
+      always() && needs.meta.result == 'success' && needs.meta.outputs.registry == 'true'
+      && !contains(fromJSON('["failure", "cancelled"]'), needs.pypi.result)
+      && !contains(fromJSON('["failure", "cancelled"]'), needs.docker.result)
+      && (needs.pypi.result == 'success' || needs.docker.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mcp-publisher
+        run: |
+          os=$(uname -s | tr '[:upper:]' '[:lower:]'); arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_${os}_${arch}.tar.gz" | tar xz mcp-publisher
+      - name: Publish server.json
+        working-directory: ${{ needs.meta.outputs.dir }}
+        run: |
+          # PyPI (mcp-name in the README) or GHCR (image label) may take a moment to serve the new release.
+          for i in 1 2 3 4 5; do
+            "$GITHUB_WORKSPACE/mcp-publisher" login github-oidc && "$GITHUB_WORKSPACE/mcp-publisher" publish && exit 0
+            sleep 30
+          done
+          exit 1
