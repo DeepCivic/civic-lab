@@ -4,7 +4,7 @@ version = "0.2.0"
 description = "MCP server that reviews an Australian project for privacy issues under the Australian Privacy Principles: findings ranked by decided-case precedent, face-value APP contraventions and cautions, open questions with the evidence that would settle them, and a draft privacy threshold assessment. Verified legislation and case-law citations."
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.10"
+requires-python = ">=3.15"
 authors = [{ name = "DeepCivic" }]
 keywords = ["mcp", "privacy", "australia", "app", "privacy-act", "pia", "privacy-review", "privacy-threshold-assessment", "compliance"]
 classifiers = [

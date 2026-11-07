@@ -4,7 +4,7 @@
 #   docker run --rm -p 8000:8000 -v /srv/repos:/work:ro IMAGE serve --http        # streamable-HTTP /mcp
 # Add -e AU_PRIVACY_REVIEW_LIVE=1 to enable probe_deployment (network). Everything else is offline.
 # Multi-arch: `docker buildx build --platform linux/amd64,linux/arm64 .`
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 LABEL io.modelcontextprotocol.server.name="io.github.DeepCivic/au-privacy-review" \
       org.opencontainers.image.source="https://github.com/DeepCivic/civic-lab" \
