@@ -1,19 +1,24 @@
 # Release one MCP server package from this monorepo.
 #
 # Push a tag named <package>-v<version>, e.g. `abr-mcp-v0.1.0`. The version
-# must equal the package's pyproject.toml version. Each step runs only if the
-# package has the matching file:
+# must equal the package's pyproject.toml version (and server.json's, if present).
+# Each step runs only if the package opts in:
 #
-#   pyproject.toml -> PyPI         (trusted publishing; no token stored)
 #   Dockerfile     -> ghcr.io/<owner>/<package>:<version> (+ :latest), amd64+arm64
+#   server.json    -> official MCP Registry (GitHub OIDC), after the packages it lists exist
+#   server.json lists a "pypi" package -> PyPI (trusted publishing; no token stored).
+#                     PyPI is opt-in: a server whose server.json lists only its Docker
+#                     image is never published to PyPI.
 #   manifest.json  -> <package>-<version>.mcpb attached to a GitHub release
-#   server.json    -> official MCP Registry (GitHub OIDC), after the above exist
 #
 # One-time setup (repository admin):
-#   * PyPI: add a trusted publisher for this repo, workflow `mcp-release.yml`,
-#     environment `pypi` (https://docs.pypi.org/trusted-publishers/).
-#   * Create the `pypi` environment in repo settings (add required reviewers to
-#     gate releases).
+#   * GHCR: after the first push of a new image, make the package public
+#     (GitHub > Packages > <package> > Package settings). The MCP Registry
+#     must be able to pull it to verify the io.modelcontextprotocol.server.name label.
+#   * PyPI, only for servers that opt in: add a trusted publisher for this repo,
+#     workflow `mcp-release.yml`, environment `pypi`
+#     (https://docs.pypi.org/trusted-publishers/), and create the `pypi`
+#     environment in repo settings (add required reviewers to gate releases).
 name: MCP server release
 
 on:
@@ -31,6 +36,7 @@ jobs:
       version: ${{ steps.m.outputs.version }}
       dir: ${{ steps.m.outputs.dir }}
       docker: ${{ steps.m.outputs.docker }}
+      pypi: ${{ steps.m.outputs.pypi }}
       mcpb: ${{ steps.m.outputs.mcpb }}
       registry: ${{ steps.m.outputs.registry }}
     steps:
@@ -42,6 +48,16 @@ jobs:
           test -f "$dir/pyproject.toml" || { echo "::error::no package at $dir"; exit 1; }
           declared=$(grep -m1 -E '^version = ' "$dir/pyproject.toml" | cut -d'"' -f2)
           [ "$declared" = "$version" ] || { echo "::error::tag $version != pyproject $declared"; exit 1; }
+          pypi=false
+          if [ -f "$dir/server.json" ]; then
+            [ "$(jq -r .version "$dir/server.json")" = "$version" ] \
+              || { echo "::error::server.json version != $version"; exit 1; }
+            jq -e '[.packages[]? | select(.registryType == "pypi")] | length > 0' "$dir/server.json" >/dev/null && pypi=true
+            if jq -e '[.packages[]? | select(.registryType == "oci")] | length > 0' "$dir/server.json" >/dev/null; then
+              [ -f "$dir/Dockerfile" ] || { echo "::error::server.json lists an OCI image but there is no Dockerfile"; exit 1; }
+            fi
+          fi
+          echo "pypi=$pypi" >> "$GITHUB_OUTPUT"
           echo "package=$package" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
@@ -51,6 +67,7 @@ jobs:
 
   pypi:
     needs: meta
+    if: needs.meta.outputs.pypi == 'true'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -119,7 +136,13 @@ jobs:
 
   registry:
     needs: [meta, pypi, docker]
-    if: always() && needs.meta.outputs.registry == 'true' && needs.pypi.result == 'success' && needs.docker.result != 'failure'
+    # Runs once every package server.json lists has been published: PyPI and Docker each either
+    # succeeded or were not needed (skipped), and at least one of them ran.
+    if: >-
+      always() && needs.meta.result == 'success' && needs.meta.outputs.registry == 'true'
+      && !contains(fromJSON('["failure", "cancelled"]'), needs.pypi.result)
+      && !contains(fromJSON('["failure", "cancelled"]'), needs.docker.result)
+      && (needs.pypi.result == 'success' || needs.docker.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -133,7 +156,7 @@ jobs:
       - name: Publish server.json
         working-directory: ${{ needs.meta.outputs.dir }}
         run: |
-          # PyPI may take a moment to serve the new README (mcp-name check).
+          # PyPI (mcp-name in the README) or GHCR (image label) may take a moment to serve the new release.
           for i in 1 2 3 4 5; do
             "$GITHUB_WORKSPACE/mcp-publisher" login github-oidc && "$GITHUB_WORKSPACE/mcp-publisher" publish && exit 0
             sleep 30
