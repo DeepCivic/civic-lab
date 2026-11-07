@@ -58,7 +58,13 @@ jobs:
           uv venv --python "$PYTHON_VERSION"
           uv pip install -e ".[dev]"
       - name: Unit tests
-        run: uv run --no-sync python -m pytest -q
+        run: |
+          set -o pipefail
+          uv run --no-sync python -m pytest -q -rfE --tb=short 2>&1 | tee pytest.log || {
+            # Surface each failure as an annotation, visible on the PR without opening logs.
+            grep -E '^(FAILED|ERROR) ' pytest.log | sed 's/^/::error title=pytest::/'
+            exit 1
+          }
       - name: Server starts and lists tools (stdio)
         run: uv run --no-sync python ../../.github/scripts/mcp_smoke.py
       - name: Build sdist and wheel
