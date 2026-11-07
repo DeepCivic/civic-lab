@@ -37,8 +37,8 @@ released on its own, in the same way as
 
 - **CI** ([mcp-servers.yml](.github/workflows/mcp-servers.yml)) discovers
   every `mcp-servers/*/pyproject.toml`. It tests each package on Linux, macOS
-  and Windows, on Python 3.10 and 3.13, and at the lowest declared dependency
-  versions. It also launches each server over stdio and lists its tools.
+  and Windows, on the current stable Python, the only version supported. It
+  also launches each server over stdio and lists its tools.
 - **Releases** ([mcp-release.yml](.github/workflows/mcp-release.yml)) run
   when you push a `<package>-v<version>` tag. A package with a `Dockerfile`
   publishes its image to ghcr.io, and one with a `server.json` publishes to

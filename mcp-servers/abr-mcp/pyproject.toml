@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "MCP server for Australian Business Register (ABN Lookup) data: offline ABN/ACN validation, a local bulk-extract index, and optional live ABR web services."
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.10"
+requires-python = ">=3.15"
 authors = [{ name = "DeepCivic" }]
 keywords = ["mcp", "abn", "acn", "australia", "abr", "business-register"]
 classifiers = [
