@@ -19,6 +19,7 @@ from __future__ import annotations
 import datetime as dt
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from . import __version__
 from .kb import KB
@@ -391,7 +392,7 @@ def assess(kb: KB, scan: dict | None, answers: dict[str, bool] | None = None, *,
             for qq in ent.get("questions_for_agent", [])[:1]:
                 if all(qq != o["question"] for o in open_questions):
                     open_questions.append({"id": e["id"], "question": qq})
-    name = project_name or (scan.get("root", "").rstrip("/").rsplit("/", 1)[-1] if scan.get("root") else "Unnamed project")
+    name = project_name or (Path(scan["root"]).name if scan.get("root") else "") or "Unnamed project"
     result = {
         "project": name, "as_at": as_at.isoformat(), "outcome": outcome, "outcome_label": label, "reasons": reasons,
         "factors": {"high": high_yes, "medium": med_yes, "unanswered": open_ids, "indicated": indicated, "not_detected": not_detected},
