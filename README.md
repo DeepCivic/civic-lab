@@ -39,9 +39,10 @@ released on its own, in the same way as
   and Windows, on Python 3.10 and 3.13, and at the lowest declared dependency
   versions. It also launches each server over stdio and lists its tools.
 - **Releases** ([mcp-release.yml](.github/workflows/mcp-release.yml)) run
-  when you push a `<package>-v<version>` tag. They publish to PyPI, plus
-  ghcr.io, an MCPB bundle and the MCP Registry for packages that include a
-  `Dockerfile`, `manifest.json` or `server.json`.
+  when you push a `<package>-v<version>` tag. A package with a `Dockerfile`
+  publishes its image to ghcr.io, and one with a `server.json` publishes to
+  the MCP Registry. PyPI is opt-in: only a package whose `server.json` lists
+  a PyPI package is published there, and none currently do.
 
 ## Repository layout
 

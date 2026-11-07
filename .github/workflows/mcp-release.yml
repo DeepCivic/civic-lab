@@ -9,7 +9,6 @@
 #   server.json lists a "pypi" package -> PyPI (trusted publishing; no token stored).
 #                     PyPI is opt-in: a server whose server.json lists only its Docker
 #                     image is never published to PyPI.
-#   manifest.json  -> <package>-<version>.mcpb attached to a GitHub release
 #
 # One-time setup (repository admin):
 #   * GHCR: after the first push of a new image, make the package public
@@ -37,7 +36,6 @@ jobs:
       dir: ${{ steps.m.outputs.dir }}
       docker: ${{ steps.m.outputs.docker }}
       pypi: ${{ steps.m.outputs.pypi }}
-      mcpb: ${{ steps.m.outputs.mcpb }}
       registry: ${{ steps.m.outputs.registry }}
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +60,6 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
           echo "docker=$([ -f "$dir/Dockerfile" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          echo "mcpb=$([ -f "$dir/manifest.json" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "registry=$([ -f "$dir/server.json" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
   pypi:
@@ -107,32 +104,6 @@ jobs:
           tags: |
             ${{ steps.name.outputs.image }}:${{ needs.meta.outputs.version }}
             ${{ steps.name.outputs.image }}:latest
-
-  mcpb:
-    needs: meta
-    if: needs.meta.outputs.mcpb == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Validate and pack
-        run: |
-          out="$RUNNER_TEMP/${{ needs.meta.outputs.package }}-${{ needs.meta.outputs.version }}.mcpb"
-          npx -y @anthropic-ai/mcpb validate "${{ needs.meta.outputs.dir }}/manifest.json"
-          npx -y @anthropic-ai/mcpb pack "${{ needs.meta.outputs.dir }}" "$out"
-          sha256sum "$out"
-          echo "MCPB=$out" >> "$GITHUB_ENV"
-      - name: Attach to GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "${{ needs.meta.outputs.package }} ${{ needs.meta.outputs.version }}"
-          gh release upload "$GITHUB_REF_NAME" "$MCPB" --clobber
 
   registry:
     needs: [meta, pypi, docker]
