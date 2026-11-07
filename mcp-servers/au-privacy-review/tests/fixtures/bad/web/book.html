@@ -1,0 +1,15 @@
+<!doctype html><html><head>
+<script>!function(f,b,e,v,n,t,s){n=f.fbq=function(){};t=b.createElement(e);t.src='https://connect.facebook.net/en_US/fbevents.js';}(window,document,'script');
+fbq('init', '123456789012345', {em: sha256(user.email)});
+fbq('track', 'PageView');</script>
+<script src="https://static.hotjar.com/c/hotjar-1.js"></script>
+</head><body>
+<form action="/api/book" method="post">
+  <input name="first_name" required>
+  <input name="email" type="email">
+  <input type="checkbox" name="marketing_consent" checked> Send me offers from partners
+  <button>Book</button>
+</form>
+<p>Our clinics use CCTV which may include facial recognition.</p>
+<script>navigator.geolocation.getCurrentPosition(p => fetch('/api/loc', {method:'POST', body: JSON.stringify(p.coords)}));</script>
+</body></html>
