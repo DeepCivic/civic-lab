@@ -14,7 +14,8 @@ reliable access to **Australian Business Register** (ABN Lookup) data.
 | `lookup_abns` | Validate and look up up to 1,000 ABNs in one call, for joining a dataset to the register. |
 | `lookup_acn` | ABN record(s) for a company's ACN. |
 | `search_names` | Candidate ABNs for a name (exact normalised match, then all-words prefix match). |
-| `register_status` | Which backends are available, extract date/age, completeness, licence. |
+| `register_status` | Which backends are available, extract date/age, completeness, index scope, build progress, licence. |
+| `build_index` | Optional: plan, then build, a local index of the bulk extract, scoped to what you need. |
 | `explain_codes` | ABN/GST status, name-type, state and entity-type code tables. |
 
 ## Quick start
@@ -25,7 +26,7 @@ reliable access to **Australian Business Register** (ABN Lookup) data.
    `1a2b3c4d-1234-5678-9abc-def012345678`. Every web-service method requires
    one. (You don't need one to search the ABN Lookup *website*, but that
    isn't an API.) No GUID yet? The validation tools work without one, and the
-   [offline index](#offline-index-optional) needs none.
+   [optional index](#your-own-index-optional) needs none.
 2. Add the server to your MCP client. It needs [uv](https://docs.astral.sh/uv/);
    `uvx` fetches it from this repository and runs it, with no separate install
    step. Or use the [Docker image](#docker).
@@ -61,26 +62,62 @@ reliable access to **Australian Business Register** (ABN Lookup) data.
 
 The validation tools work with no GUID and no index.
 
-## Offline index (optional)
+## Your own index (optional)
 
-For offline use, bulk joins, or freedom from web-service rate limits, build a
-local index from the weekly [ABN Bulk Extract](https://data.gov.au/data/dataset/abn-bulk-extract):
+abr-mcp does not need a local index. With an `ABR_GUID` it looks everything up
+live, and without one the validation tools still work. Build an index only if
+you want offline lookups, bulk joins of thousands of ABNs, or use without a
+GUID. It comes from the weekly
+[ABN Bulk Extract](https://data.gov.au/data/dataset/abn-bulk-extract) on
+data.gov.au, a download of about 1 GB, and you choose how much of the register
+to keep:
+
+| Scope | Records | Approximate index size |
+| --- | --- | --- |
+| Full register (active and cancelled, all names, name search) | 20.1 million | 7.1 GB |
+| Active ABNs only | 9.0 million | 3.2 GB |
+| Active ABNs, without legacy trading names or name search | 9.0 million | 2.8 GB |
+| Active ABNs in one state (Victoria), main and business names, no name search | 2.5 million | 0.8 GB |
+
+Sizes are estimates from the April 2026 extract. Allow room for the download
+and about twice the index size while it builds.
+
+**From your assistant.** Ask it to build an index. The `build_index` tool
+first returns a plan: the download, the estimated size for the scope you chose,
+and your free disk space. It starts only when called again with `start=true`,
+then runs in the background while the server keeps answering. `register_status`
+shows its progress.
+
+**From the command line:**
 
 ```bash
 ABR="uvx --from git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-mcp abr-mcp"
-$ABR update-index     # ~1 GB download, ~15 min build, ~7 GB index
+$ABR estimate --active-only --state VIC          # size before you commit
+$ABR update-index --active-only --state VIC      # download, build, delete the download
 $ABR status
 ```
 
-`update-index` downloads the extract from data.gov.au, builds the index and
-deletes the download. If the published extract hasn't changed since the last
-build, it does nothing, so it is safe to run on a schedule (for example, a
-weekly cron job). The index goes to `$ABR_INDEX_PATH`, or by default
+Scope options, for the tool and the CLI alike:
+
+- `--active-only`: drop cancelled ABNs.
+- `--state VIC` (repeatable): keep only some states.
+- `--name-types MN,LGL,BN`: keep only some name types. Trading names (`TRD`)
+  are legacy and make up about a sixth of all names.
+- `--no-fts`: skip the full-text index for word and prefix name search. Exact
+  name matches still work.
+
+A scoped index records its scope. A lookup outside it reports "not in this
+index's scope" and, with a GUID, falls back to the live service. It never
+reports the ABN as unregistered.
+
+`update-index` does nothing if the published extract and the scope haven't
+changed since the last build, so it is safe to run on a schedule (for example,
+a weekly cron job). The index goes to `$ABR_INDEX_PATH`, or by default
 `~/.local/share/abr-mcp/abr.sqlite` (`%LOCALAPPDATA%\abr-mcp\abr.sqlite` on
 Windows).
 
 With both backends configured, the default `source="auto"` answers from the
-index and falls back to the live service for ABNs newer than the extract.
+index and falls back to the live service for ABNs it doesn't hold.
 `source="local"` and `source="web"` force one backend.
 
 What a build guarantees:
@@ -88,14 +125,19 @@ What a build guarantees:
 - **Atomic.** The index is written to a temporary file and moved into place
   only when every check passes. A failed build leaves the old index working.
 - **Verified.** Each file's parsed record count must match its declared
-  `RecordCount`, so a truncated download fails loudly.
+  `RecordCount`, so a truncated download fails loudly. This holds for scoped
+  builds too: every file is read and checked, then filtered.
 - **Complete, or labelled partial.** All 20 extract files are required.
   `build-index --allow-partial` accepts gaps, and lookups then report "not in
   this partial index" instead of implying the ABN is unregistered.
 - **One row per ABN.** If an ABN appears twice, the latest record wins.
 
 `abr-mcp download DIR` and `abr-mcp build-index PATH...` do the two steps
-separately, for zips or XML files you already have.
+separately, for zips or XML files you already have. The tool's `source_dir`
+option does the same.
+
+On a server running over HTTP, `build_index` is off unless
+`ABR_ALLOW_INDEX_BUILD=1`, so remote clients can't trigger a 1 GB download.
 
 On Windows, stop the server before rebuilding the index, because Windows can't
 replace a file that is open.
@@ -103,11 +145,11 @@ replace a file that is open.
 ## Docker
 
 The image holds no data and defaults to a stdio server, like the
-[reference servers](https://github.com/modelcontextprotocol/servers). A named
-volume holds the index:
+[reference servers](https://github.com/modelcontextprotocol/servers). It works
+with just a GUID. If you build an index, a named volume holds it:
 
 ```bash
-docker run --rm -v abr-data:/data ghcr.io/deepcivic/abr-mcp update-index   # optional
+docker run --rm -v abr-data:/data ghcr.io/deepcivic/abr-mcp update-index --active-only   # optional
 ```
 
 ```json

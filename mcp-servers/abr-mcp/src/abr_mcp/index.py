@@ -22,10 +22,11 @@ swap the file underneath a running server safely.
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
-from contextlib import closing
 import time
+from contextlib import closing
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -34,7 +35,7 @@ from typing import Any
 
 from . import __version__
 from .bulk import RECORD_FIELDS, AbrRecord, TransferInfo, discover_sources, iter_extract
-from .codes import BULK_EXTRACT_SCHEMA_VERSION
+from .codes import BULK_EXTRACT_SCHEMA_VERSION, NAME_TYPES, STATES
 from .names import fts_query, name_key
 
 INDEX_FORMAT = "1"
@@ -86,6 +87,92 @@ class BuildError(RuntimeError):
     """The build did not produce a trustworthy index; nothing was replaced."""
 
 
+@dataclass(frozen=True)
+class IndexScope:
+    """Which part of the register an index holds. The default is all of it.
+
+    A scoped index is smaller, but a record outside its scope is simply absent, so lookups
+    report a miss as "not in this index's scope", never as "not registered".
+    """
+
+    active_only: bool = False
+    states: tuple[str, ...] = ()  # empty: every state, including records with no state
+    name_types: tuple[str, ...] | None = None  # None: every name type
+
+    @classmethod
+    def make(cls, active_only: bool = False, states: Iterable[str] | None = None,
+             name_types: Iterable[str] | None = None) -> IndexScope:
+        st = tuple(sorted({s.strip().upper() for s in states or [] if s.strip()}))
+        bad = [x for x in st if x not in STATES]
+        if bad:
+            raise ValueError(f"unknown state(s) {', '.join(bad)}; use {', '.join(STATES)}")
+        nt = None if name_types is None else tuple(sorted({t.strip().upper() for t in name_types if t.strip()}))
+        if nt is not None:
+            bad = [x for x in nt if x not in NAME_TYPES]
+            if bad:
+                raise ValueError(f"unknown name type(s) {', '.join(bad)}; use {', '.join(NAME_TYPES)}")
+        return cls(bool(active_only), st, nt)
+
+    @property
+    def full(self) -> bool:
+        return not self.active_only and not self.states and self.name_types is None
+
+    def keeps(self, record: dict[str, str]) -> bool:
+        if self.active_only and record.get("abn_status") != "ACT":
+            return False
+        return not self.states or record.get("state", "") in self.states
+
+    def keeps_name(self, name_type: str) -> bool:
+        return self.name_types is None or name_type in self.name_types
+
+    def describe(self) -> str:
+        if self.full:
+            return "the full register"
+        parts = ["active ABNs" if self.active_only else "active and cancelled ABNs"]
+        parts.append(f"in {', '.join(self.states)}" if self.states else "in every state")
+        if self.name_types is not None:
+            parts.append(f"with name types {', '.join(self.name_types) or 'none'}")
+        return " ".join(parts)
+
+    def to_meta(self) -> str:
+        return "" if self.full else json.dumps(
+            {"active_only": self.active_only, "states": list(self.states),
+             "name_types": None if self.name_types is None else list(self.name_types)}, sort_keys=True)
+
+    @classmethod
+    def from_meta(cls, value: str | None) -> IndexScope:
+        if not value:
+            return cls()
+        d = json.loads(value)
+        return cls(bool(d.get("active_only")), tuple(d.get("states") or ()),
+                   None if d.get("name_types") is None else tuple(d["name_types"]))
+
+
+# Record and name counts in the complete extract of 22 April 2026, used only to estimate the size of
+# an index before it is built. Sizes per row were measured on that build.
+_RECORDS = {
+    "all": {"NSW": 6_560_653, "VIC": 5_280_950, "QLD": 4_141_949, "WA": 2_051_117, "SA": 1_279_242,
+            "TAS": 318_591, "ACT": 293_788, "NT": 141_714, "": 58_181},
+    "active": {"NSW": 2_949_138, "VIC": 2_484_337, "QLD": 1_768_336, "WA": 891_434, "SA": 575_713,
+               "TAS": 136_991, "ACT": 128_479, "NT": 56_658, "": 26_445},
+}
+_NAMES = {
+    "all": {"LGL": 10_926_620, "MN": 9_199_565, "TRD": 4_523_428, "BN": 2_534_311, "OTN": 445_669, "DGR": 8_693},
+    "active": {"MN": 4_757_678, "LGL": 4_259_853, "BN": 2_281_824, "TRD": 1_425_967, "OTN": 155_752, "DGR": 8_668},
+}
+_BYTES_PER_RECORD, _BYTES_PER_NAME, _BYTES_PER_FTS_NAME = 173, 105, 26
+
+
+def estimate_index(scope: IndexScope, fts: bool = True) -> dict[str, int]:
+    """Approximate records, names and bytes for an index of this scope (from the April 2026 extract)."""
+    key = "active" if scope.active_only else "all"
+    records = sum(n for st, n in _RECORDS[key].items() if not scope.states or st in scope.states)
+    share = records / sum(_RECORDS[key].values())
+    names = int(share * sum(n for t, n in _NAMES[key].items() if scope.keeps_name(t)))
+    size = records * _BYTES_PER_RECORD + names * (_BYTES_PER_NAME + (_BYTES_PER_FTS_NAME if fts else 0))
+    return {"records": records, "names": names, "bytes": int(size)}
+
+
 @dataclass
 class SourceReport:
     label: str
@@ -104,6 +191,7 @@ class BuildReport:
     record_count: int = 0
     name_count: int = 0
     duplicates_resolved: int = 0
+    records_out_of_scope: int = 0
     missing_sequence_numbers: list[int] = field(default_factory=list)
     extract_dates: list[str] = field(default_factory=list)
     complete: bool = False
@@ -149,8 +237,14 @@ def build_index(
     allow_partial: bool = False,
     progress: Callable[[str], None] | None = None,
     extra_meta: dict[str, str] | None = None,
+    scope: IndexScope | None = None,
 ) -> BuildReport:
-    """Build (or rebuild) the local index from bulk extract files/zips/dirs."""
+    """Build (or rebuild) the local index from bulk extract files/zips/dirs.
+
+    ``scope`` keeps only part of the register (for example active ABNs in one state). Every
+    file is still parsed and checked against its declared record count.
+    """
+    scope = scope or IndexScope()
     started = time.monotonic()
     target = Path(db_path) if db_path else default_index_path()
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -204,6 +298,7 @@ def build_index(
                 recs.clear(), names.clear(), dgrs.clear()
 
             skipped = False
+            out_of_scope = 0
             try:
                 with src.open() as stream:
                     for item in iter_extract(stream):
@@ -221,15 +316,19 @@ def build_index(
                                 break
                             continue
                         assert isinstance(item, AbrRecord)
+                        r = item.record
+                        rep.records_parsed += 1
+                        if not scope.keeps(r):
+                            out_of_scope += 1
+                            continue
                         rid = next_rec
                         next_rec += 1
-                        r = item.record
                         recs.append((rid, source_id, *(r[f] for f in RECORD_FIELDS)))
                         for ntype, text in item.names:
-                            names.append((rid, ntype, text, name_key(text)))
+                            if scope.keeps_name(ntype):
+                                names.append((rid, ntype, text, name_key(text)))
                         for d in item.dgr:
                             dgrs.append((rid, *d))
-                        rep.records_parsed += 1
                         if len(recs) >= _BATCH:
                             flush()
                 if not skipped:
@@ -243,6 +342,7 @@ def build_index(
                             f"{declared} (truncated or corrupt file?)"
                         )
                     rep.status = "loaded"
+                    report.records_out_of_scope += out_of_scope
                     loaded[rep.file_sequence_number] = rep.extract_time
                     say(f"  {rep.records_parsed:,} records")
             except Exception as exc:
@@ -317,6 +417,8 @@ def build_index(
             "complete": "1" if report.complete else "0",
             "missing_sequence_numbers": ",".join(map(str, report.missing_sequence_numbers)),
             "fts": "1" if fts else "0",
+            "scope": scope.to_meta(),
+            "records_out_of_scope": str(report.records_out_of_scope),
             "warnings": " | ".join(report.warnings),
             **(extra_meta or {}),
         }
@@ -376,7 +478,8 @@ class LocalIndex:
 
     def _connect(self) -> sqlite3.Connection:
         if not self.path.is_file():
-            raise IndexUnavailable(f"No ABR index at {self.path}. Run: abr-mcp update-index")
+            raise IndexUnavailable(f"No ABR index at {self.path}. Build one with the build_index tool "
+                                   "or `abr-mcp update-index`.")
         con = sqlite3.connect(f"{self.path.resolve().as_uri()}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
         return con

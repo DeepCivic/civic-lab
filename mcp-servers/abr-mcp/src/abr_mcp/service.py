@@ -31,7 +31,7 @@ from .codes import (
     WEB_SERVICES_TERMS,
 )
 from .identifiers import acn_is_valid, format_abn, format_acn, validate_abn, validate_acn
-from .index import IndexUnavailable, LocalIndex
+from .index import IndexScope, IndexUnavailable, LocalIndex
 from .web import AbrWebClient, WebError
 
 SOURCES = ("auto", "local", "web")
@@ -55,6 +55,10 @@ CAVEATS = {
     "partial_index": (
         "The local index was built from a partial extract, so an ABN missing from it may still "
         "be registered."
+    ),
+    "scoped_index": (
+        "The local index holds only part of the register ({scope}). Anything outside that scope is "
+        "simply not in it, which does not mean it is not registered."
     ),
 }
 
@@ -93,13 +97,21 @@ class AbrService:
                 age = (date.today() - date.fromisoformat(extract)).days
             except ValueError:
                 age = None
+        scope = IndexScope.from_meta(meta.get("scope"))
         return {
             "source": "abr_bulk_extract",
             "extract_date": extract,
             "extract_age_days": age,
             "index_complete": meta.get("complete") == "1",
+            "index_scope": scope.describe(),
             **LICENCE,
         }
+
+    def _scope_caveats(self, prov: dict[str, Any]) -> list[str]:
+        out = [] if prov.get("index_complete", True) else [CAVEATS["partial_index"]]
+        if prov.get("index_scope", "the full register") != "the full register":
+            out.append(CAVEATS["scoped_index"].format(scope=prov["index_scope"]))
+        return out
 
     @staticmethod
     def _web_provenance() -> dict[str, Any]:
@@ -117,16 +129,16 @@ class AbrService:
         web_ok = self.web.available()
         if source == "local" and not local_ok:
             raise IndexUnavailable(
-                f"No usable local index at {self.index.path}. Build one with "
-                "`abr-mcp update-index`, or use source='web'."
+                f"No usable local index at {self.index.path}. Build one with the build_index tool "
+                "or `abr-mcp update-index`, or use source='web'."
             )
         if source == "web" and not web_ok:
             raise WebError("ABR web services are not configured: set ABR_GUID.")
         if source == "auto" and not (local_ok or web_ok):
             raise IndexUnavailable(
                 "No ABR backend is configured: set ABR_GUID for the live ABN Lookup web services "
-                "(free GUID: https://abr.business.gov.au/Tools/WebServices) and/or build a local "
-                "index with `abr-mcp update-index`."
+                "(free GUID: https://abr.business.gov.au/Tools/WebServices). Optionally, build a local "
+                "index with the build_index tool or `abr-mcp update-index`."
             )
         return (source in ("auto", "local") and local_ok, source in ("auto", "web") and web_ok)
 
@@ -243,18 +255,24 @@ class AbrService:
                     caveats.append(CAVEATS["trading_names"])
                 caveats.append(CAVEATS["location"])
                 return {"found": True, "record": shaped, "provenance": prov, "caveats": caveats}
+            scoped = prov["index_scope"] != "the full register"
             local_miss_note = (
                 "not in local bulk extract index"
                 + ("" if prov["index_complete"] else " (index is partial)")
+                + (f", which holds only {prov['index_scope']}" if scoped else "")
                 + (f" as at {prov['extract_date']}" if prov["extract_date"] else "")
             )
+            reason = ("not_in_index_scope" if scoped else
+                      "not_in_index" if prov["index_complete"] else "not_in_partial_index")
             miss = {
                 "found": False,
-                "reason": "not_in_index" if prov["index_complete"] else "not_in_partial_index",
+                "reason": reason,
                 "abn": key,
-                "detail": local_miss_note + ". It may be newer than the extract, or not registered.",
+                "detail": local_miss_note + (". It may be outside the index's scope, newer than the extract, "
+                                             "or not registered." if scoped else
+                                             ". It may be newer than the extract, or not registered."),
                 "provenance": prov,
-                "caveats": [] if prov["index_complete"] else [CAVEATS["partial_index"]],
+                "caveats": self._scope_caveats(prov),
             }
             if not use_web:
                 return miss
@@ -328,8 +346,8 @@ class AbrService:
             "found": sum(bool(r.get("found")) for r in rows),
         }
         caveats = [CAVEATS["snapshot"]] if source == "local" else []
-        if source == "local" and not prov.get("index_complete"):
-            caveats.append(CAVEATS["partial_index"])
+        if source == "local":
+            caveats += self._scope_caveats(prov)
         return {"summary": summary, "results": rows, "provenance": prov, "caveats": caveats}
 
     def lookup_acn(self, acn: str, source: str = "auto") -> dict[str, Any]:
@@ -347,6 +365,8 @@ class AbrService:
             miss = {"found": False, "reason": "no_abn_for_acn_in_index", "acn": key,
                     "detail": "No ABN in the local index lists this ACN. A company can hold an "
                               "ACN without an ABN.", "provenance": prov}
+            if self._scope_caveats(prov):
+                miss["caveats"] = self._scope_caveats(prov)
             if not use_web:
                 return miss
             try:
@@ -404,6 +424,7 @@ class AbrService:
                    "results": out["results"], **scope,
                    "provenance": self._local_provenance(self._local_meta() or {}),
                    "caveats": [CAVEATS["name_match"], CAVEATS["snapshot"]]}
+            res["caveats"] += self._scope_caveats(res["provenance"])
             if not out["key"]:
                 res["note"] = ("The name contains only legal-form words (e.g. PTY, LTD) or "
                                "punctuation, which matching ignores; add distinctive words.")
@@ -458,6 +479,7 @@ class AbrService:
                     names=int(meta.get("name_count", "0")),
                     duplicates_resolved=int(meta.get("duplicates_resolved", "0")),
                     full_text_search=meta.get("fts") == "1",
+                    scope=prov["index_scope"],
                     missing_sequence_numbers=meta.get("missing_sequence_numbers", ""),
                     warnings=meta.get("warnings", ""),
                 )
@@ -465,7 +487,7 @@ class AbrService:
                 if age is not None and age > 14:
                     out["local_index"]["stale_warning"] = (
                         f"Extract is {age} days old; the ABR publishes weekly. "
-                        "Refresh with `abr-mcp update-index`."
+                        "Refresh with the build_index tool or `abr-mcp update-index`."
                     )
             except IndexUnavailable as exc:
                 out["local_index"]["error"] = str(exc)

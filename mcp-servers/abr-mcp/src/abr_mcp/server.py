@@ -11,6 +11,7 @@ import os
 import sqlite3
 import sys
 from collections.abc import Callable
+from pathlib import Path
 from typing import Annotated, Any, Literal, TypeVar
 
 from pydantic import Field
@@ -26,9 +27,10 @@ except ImportError:  # mcp 1.x
 
     _MCP_V2 = False
 
+from abr_mcp import jobs as _jobs
 from abr_mcp.identifiers import validate_abn as _validate_abn
 from abr_mcp.identifiers import validate_acn as _validate_acn
-from abr_mcp.index import IndexUnavailable
+from abr_mcp.index import IndexScope, IndexUnavailable
 from abr_mcp.service import AbrService
 from abr_mcp.web import WebError
 
@@ -48,10 +50,17 @@ present results as official ABR statements.
 - Trading names (TRD) are legacy (not updated since 2012) and the ABR
   recommends avoiding them; search_names skips them unless asked. Registered
   business names (BN) are current.
+- Backends: lookups use the live ABN Lookup web services when ABR_GUID is set,
+  and/or a local index of the weekly bulk extract. The index is optional. Only
+  offer build_index if the user wants offline or bulk lookups: it downloads
+  about 1 GB, and can be scoped (active ABNs, chosen states) to stay small.
+  Call it without start first, show the user the plan, and start only if they agree.
 """
 
 mcp = _Server("abr", instructions=INSTRUCTIONS)
 _service: AbrService | None = None
+_builds = _jobs.Builds()
+_HTTP = False
 
 
 def service() -> AbrService:
@@ -75,7 +84,8 @@ def anticipated(fn: F) -> F:
         except (ValueError, IndexUnavailable, WebError) as exc:
             raise ToolError(str(exc)) from exc
         except sqlite3.DatabaseError as exc:
-            raise ToolError(f"local ABR index error ({exc}); rebuild with `abr-mcp build-index`") from exc
+            raise ToolError(f"local ABR index error ({exc}); rebuild it with the build_index tool "
+                            "or `abr-mcp update-index`") from exc
 
     return wrapper  # type: ignore[return-value]
 
@@ -195,8 +205,49 @@ def search_names(
 @anticipated
 def register_status() -> dict[str, Any]:
     """Report which ABR backends are available, the extract date and age,
-    completeness, record counts, and the data licence/attribution."""
-    return service().status()
+    completeness, the local index's scope and record counts, the progress of
+    any index build, and the data licence/attribution."""
+    out = service().status()
+    job = _builds.status()
+    if job:
+        out["index_build"] = job
+    out["index_build_allowed"] = _jobs.allowed(_HTTP)
+    return out
+
+
+@mcp.tool()
+@anticipated
+def build_index(
+    start: Annotated[bool, Field(description="false: return the plan (download, estimated size, free disk). "
+                                             "true: start the build in the background")] = False,
+    active_only: Annotated[bool, Field(description="Keep only active ABNs (about 45% of records)")] = False,
+    states: Annotated[list[str] | None, Field(description="Keep only these states, e.g. ['VIC']. Default: all")] = None,
+    name_types: Annotated[list[str] | None, Field(description="Name types to keep (MN, LGL, BN, TRD, OTN, DGR). "
+                                                              "Default: all. Dropping TRD (legacy) saves space")] = None,
+    name_search: Annotated[bool, Field(description="Build the full-text name index for word and prefix "
+                                                   "search (about 10% more space)")] = True,
+    source_dir: Annotated[str | None, Field(description="Build from bulk extract zips or XML already on disk "
+                                                        "instead of downloading")] = None,
+    force: Annotated[bool, Field(description="Rebuild even if the index is already current")] = False,
+) -> dict[str, Any]:
+    """Optional: build a local index of the ABN Bulk Extract, for offline lookups, bulk joins, and use
+    without an ABR_GUID. Not needed otherwise. Call first without start to get the plan (download about
+    1 GB; the full register is about 7 GB, active ABNs in one state can be under 1 GB). Call again with
+    start=true to build in the background, and check register_status for progress. The current index,
+    if any, keeps working until the new one replaces it."""
+    if not _jobs.allowed(_HTTP):
+        raise ValueError("Index builds are disabled on this server (HTTP mode needs ABR_ALLOW_INDEX_BUILD=1).")
+    scope = IndexScope.make(active_only, states, name_types)
+    src = Path(source_dir).expanduser() if source_dir else None
+    if src is not None and not src.exists():
+        raise ValueError(f"source_dir not found: {src}")
+    target = service().index.path
+    if not start:
+        plan = _builds.plan(scope, fts=name_search, source_dir=src, target=target)
+        return {"plan": plan, "next": "Show this plan to the user. If they agree, call build_index again "
+                                      "with the same options and start=true."}
+    job = _builds.start(scope, fts=name_search, source_dir=src, force=force, target=target)
+    return {"started": True, "index_build": job, "next": "Check register_status for progress."}
 
 
 @mcp.tool()
@@ -210,7 +261,9 @@ def explain_codes() -> dict[str, Any]:
 def main() -> None:
     """Serve over stdio, or streamable-HTTP (stateless, /mcp) with --http or
     MCP_TRANSPORT=http on HOST (default 127.0.0.1) and PORT (default 8000)."""
+    global _HTTP
     http = "--http" in sys.argv or os.getenv("MCP_TRANSPORT", "").lower() in ("http", "streamable-http")
+    _HTTP = http
     if not http:
         mcp.run()
         return

@@ -1,12 +1,20 @@
-"""abr-mcp: serve the ABR MCP server, and build or refresh its local index.
+"""abr-mcp: serve the ABR MCP server, and optionally build a local index.
+
+The index is optional. Without it, abr-mcp validates ABNs/ACNs offline and looks records up
+through the live ABN Lookup web services (set ABR_GUID).
 
   abr-mcp                     serve over stdio (what MCP clients launch)
   abr-mcp serve --http        serve streamable-HTTP on HOST:PORT/mcp
-  abr-mcp update-index        download the latest bulk extract and (re)build the
+  abr-mcp estimate [SCOPE]    estimate the size of an index before building it
+  abr-mcp update-index [SCOPE] download the latest bulk extract (~1 GB) and (re)build the
                               index; does nothing if the index is already current
   abr-mcp status              backend status as JSON
   abr-mcp download DIR        just download the extract zips
-  abr-mcp build-index PATH... build from zips/XML you already have
+  abr-mcp build-index PATH... [SCOPE]  build from zips/XML you already have
+
+SCOPE keeps part of the register: --active-only, --state VIC (repeatable),
+--name-types MN,LGL,BN. The full register is about 7 GB; active ABNs in one state
+can be under 1 GB.
 """
 
 from __future__ import annotations
@@ -14,71 +22,27 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import tempfile
 from pathlib import Path
-from typing import Any
 
 import httpx
 
-from .index import BuildError, BuildReport, LocalIndex, build_index, default_index_path
+from . import updater
+from .index import BuildError, BuildReport, IndexScope, build_index, default_index_path, estimate_index
 from .service import AbrService
-
-CKAN_PACKAGE = "https://data.gov.au/data/api/3/action/package_show?id=abn-bulk-extract"
-
 
 def _log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
 
 def _client() -> httpx.Client:
-    return httpx.Client(timeout=httpx.Timeout(60.0, read=300.0),
-                        headers={"User-Agent": "abr-mcp"}, follow_redirects=True)
-
-
-def _zip_resources(client: httpx.Client) -> list[dict[str, Any]]:
-    """The bulk extract zips as currently listed by data.gov.au."""
-    pkg = client.get(CKAN_PACKAGE)
-    pkg.raise_for_status()
-    zips = [r for r in pkg.json()["result"]["resources"]
-            if str(r.get("url", "")).lower().endswith(".zip")]
-    if not zips:
-        raise RuntimeError("data.gov.au lists no .zip resources for abn-bulk-extract")
-    return zips
-
-
-def _stamp(resources: list[dict[str, Any]]) -> str:
-    """Identifies a published extract: zip names + their last-modified times."""
-    return ";".join(sorted(
-        f"{r['url'].rsplit('/', 1)[-1]}={r.get('last_modified') or r.get('size') or ''}"
-        for r in resources))
-
-
-def _fetch(client: httpx.Client, resources: list[dict[str, Any]], dest: Path) -> None:
-    dest.mkdir(parents=True, exist_ok=True)
-    for res in resources:
-        url = res["url"]
-        out = dest / url.rsplit("/", 1)[-1]
-        part = out.with_suffix(out.suffix + ".part")
-        _log(f"downloading {url}")
-        written = 0
-        with client.stream("GET", url) as resp:
-            resp.raise_for_status()
-            expected = int(resp.headers.get("content-length") or 0)
-            with open(part, "wb") as fh:
-                for chunk in resp.iter_bytes(1 << 20):
-                    fh.write(chunk)
-                    written += len(chunk)
-        if expected and written != expected:
-            part.unlink(missing_ok=True)
-            raise RuntimeError(f"incomplete download of {out.name} ({written} of {expected} bytes)")
-        part.replace(out)
-        _log(f"  {written / 1e6:,.0f} MB")
+    return updater.client()
 
 
 def _report_json(rep: BuildReport) -> str:
     return json.dumps({
         "db": str(rep.db_path), "records": rep.record_count, "names": rep.name_count,
         "duplicates_resolved": rep.duplicates_resolved, "complete": rep.complete,
+        "records_out_of_scope": rep.records_out_of_scope,
         "extract_dates": rep.extract_dates, "missing_sequence_numbers": rep.missing_sequence_numbers,
         "warnings": rep.warnings, "seconds": rep.seconds,
         "sources": [{"label": s.label, "status": s.status, "records": s.records_parsed,
@@ -86,29 +50,23 @@ def _report_json(rep: BuildReport) -> str:
     }, indent=2)
 
 
-def update_index(db: Path | None, *, force: bool = False, fts: bool = True) -> int:
-    target = db or default_index_path()
-    idx = LocalIndex(target)
-    current: dict[str, str] = {}
-    if idx.available():
-        try:
-            current = idx.meta()
-        except Exception as exc:  # unreadable/old format: rebuild
-            _log(f"existing index unusable ({exc}); rebuilding")
-    with _client() as client:
-        resources = _zip_resources(client)
-        stamp = _stamp(resources)
-        if not force and current.get("source_stamp") == stamp and current.get("complete") == "1":
-            _log(f"index at {target} is current (extract {current.get('extract_dates')}); nothing to do")
-            return 0
-        target.parent.mkdir(parents=True, exist_ok=True)
-        # Download beside the index (same disk, ~1 GB) and remove afterwards.
-        with tempfile.TemporaryDirectory(prefix="abr-download-", dir=target.parent) as tmp:
-            _fetch(client, resources, Path(tmp))
-            rep = build_index([tmp], target, fts=fts, progress=_log,
-                              extra_meta={"source_stamp": stamp})
-    print(_report_json(rep))
+def update_index(db: Path | None, *, force: bool = False, fts: bool = True, scope: IndexScope | None = None) -> int:
+    rep = updater.update(db, force=force, fts=fts, scope=scope, progress=_log, client_factory=lambda: _client())
+    if rep is not None:
+        print(_report_json(rep))
     return 0
+
+
+def _scope(args: argparse.Namespace) -> IndexScope:
+    return IndexScope.make(args.active_only, args.state, args.name_types.split(",") if args.name_types else None)
+
+
+def _scope_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--active-only", action="store_true", help="keep only active ABNs (about half the size)")
+    p.add_argument("--state", action="append", default=None, metavar="STATE",
+                   help="keep only records in this state (repeatable), e.g. --state VIC")
+    p.add_argument("--name-types", default=None, metavar="TYPES",
+                   help="comma-separated name types to keep, e.g. MN,LGL,BN (default: all)")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -124,6 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     p_up.add_argument("--db", type=Path, default=None, help=db_help)
     p_up.add_argument("--force", action="store_true", help="rebuild even if already current")
     p_up.add_argument("--no-fts", action="store_true", help="skip the full-text name index")
+    _scope_args(p_up)
 
     p_dl = sub.add_parser("download", help="download the bulk extract zips into a directory")
     p_dl.add_argument("dest", type=Path)
@@ -134,6 +93,11 @@ def main(argv: list[str] | None = None) -> int:
     p_build.add_argument("--no-fts", action="store_true", help="skip the full-text name index")
     p_build.add_argument("--allow-partial", action="store_true",
                          help="accept failed or missing files (index is marked partial)")
+    _scope_args(p_build)
+
+    p_est = sub.add_parser("estimate", help="estimate the size of an index before building it")
+    p_est.add_argument("--no-fts", action="store_true")
+    _scope_args(p_est)
 
     sub.add_parser("status", help="show backend status as JSON")
 
@@ -146,15 +110,21 @@ def main(argv: list[str] | None = None) -> int:
             server.main()
             return 0
         if args.cmd == "update-index":
-            return update_index(args.db, force=args.force, fts=not args.no_fts)
+            return update_index(args.db, force=args.force, fts=not args.no_fts, scope=_scope(args))
+        if args.cmd == "estimate":
+            sc = _scope(args)
+            est = estimate_index(sc, fts=not args.no_fts)
+            print(json.dumps({"scope": sc.describe(), **est, "gb": round(est["bytes"] / 1e9, 1),
+                              "download_gb": round(updater.DOWNLOAD_BYTES_ESTIMATE / 1e9, 1)}, indent=2))
+            return 0
         if args.cmd == "download":
             with _client() as client:
-                _fetch(client, _zip_resources(client), args.dest)
+                updater.fetch(client, updater.zip_resources(client), args.dest, _log)
             _log(f"done. Next: abr-mcp build-index {args.dest}")
             return 0
         if args.cmd == "build-index":
             rep = build_index(args.inputs, args.db, fts=not args.no_fts,
-                              allow_partial=args.allow_partial, progress=_log)
+                              allow_partial=args.allow_partial, progress=_log, scope=_scope(args))
             print(_report_json(rep))
             return 0
         if args.cmd == "status":
@@ -163,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     except BuildError as exc:
         _log(f"build failed, existing index untouched: {exc}")
         return 1
-    except (httpx.HTTPError, RuntimeError, OSError) as exc:
+    except (httpx.HTTPError, RuntimeError, OSError, ValueError) as exc:
         _log(f"error: {exc}")
         return 1
     return 2

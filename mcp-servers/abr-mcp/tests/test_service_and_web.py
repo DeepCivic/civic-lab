@@ -248,7 +248,7 @@ def test_mcp_tools_registered_and_callable(built_index: Path, monkeypatch):
     monkeypatch.setattr(server, "_service", svc(built_index))
     tools = {t.name for t in asyncio.run(server.mcp.list_tools())}
     assert tools == {"validate_abn", "validate_acn", "lookup_abn", "lookup_abns", "lookup_acn",
-                     "search_names", "register_status", "explain_codes"}
+                     "search_names", "register_status", "explain_codes", "build_index"}
     result = asyncio.run(server.mcp.call_tool("lookup_abn", {"abn": ABN_CO}))
     text = json.dumps(result, default=str)
     assert "EXAMPLE WIDGETS PTY LTD" in text
