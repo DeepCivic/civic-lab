@@ -1,0 +1,46 @@
+privacy-review-au
+Copyright DeepCivic contributors. Licensed under the Apache License 2.0.
+
+privacy-review-au is an independent tool. It is not affiliated with, endorsed or
+approved by the Office of the Australian Information Commissioner, any court or
+tribunal, or the Commonwealth of Australia. It does not provide legal advice.
+
+The bundled knowledge base (src/privacy_review_au/data/kb.json) contains quotations
+from, and the text of, the following, used under their terms:
+
+* Commonwealth legislation (Privacy Act 1988 and instruments, including the Privacy
+  Regulations 2025, the Agencies APP Code 2017 and the TFN Rule 2015; Privacy and Other
+  Legislation Amendment Act 2024; Digital ID Act 2024; Security of Critical Infrastructure
+  Act 2018; Telecommunications (Interception and Access) Act 1979; Cyber Security Act 2024):
+  sourced from the Federal Register of Legislation
+  (https://www.legislation.gov.au), Creative Commons Attribution 4.0 International.
+  "Sourced from the Federal Register of Legislation at 7 November 2026. For the latest
+  information on Australian Government law please go to https://www.legislation.gov.au."
+
+* OAIC determinations, media releases and guidance: Office of the Australian
+  Information Commissioner website - www.oaic.gov.au, Creative Commons Attribution
+  4.0 International. OAIC register metadata for 101 privacy determinations is included.
+
+* Judgments of the Federal Court of Australia, reproduced in unaltered form as
+  excerpts and acknowledged as decisions of the Court, via the Open Australian Legal
+  Corpus (Isaacus, CC BY 4.0 as a collection; https://huggingface.co/datasets/isaacus/open-australian-legal-corpus).
+  Analysis, headings and commentary in this repository are DeepCivic's, not the Court's.
+
+* NSW material, via the Open Australian Legal Corpus: short quotations from the Privacy and
+  Personal Information Protection Act 1998 (NSW) and from decisions of the NSW Civil and
+  Administrative Tribunal (DMP, EQH, FQW, FMM, Insurance and Care NSW v FMM, Stalvies). These
+  are cited only by analogy to the Commonwealth APPs. The decision texts are not redistributed.
+
+* Administrative Review Tribunal (Bunnings Group Limited and Privacy Commissioner [2026]
+  ARTA 130) and Federal Court ([2025] FCA 1224): the full texts were not retrieved. Quotations
+  come from the OAIC's published statements on those decisions and are marked as secondary.
+
+* High Court of Australia: short quotation only (Australian Broadcasting Corporation v
+  Lenah Game Meats Pty Ltd [2001] HCA 63). The judgment text is not redistributed.
+
+* The Commissioner's concise statement in Australian Information Commissioner v
+  Medibank Private Limited (VID497/2024), as published by the OAIC. Its contents are
+  allegations, not findings.
+
+Research-time processing used Womblex (Apache-2.0, DeepCivic) and Isaacus kanon-2
+models (enrichment and embeddings).

@@ -28,8 +28,9 @@ Australian Government and go-to-market contexts:
 | Server | Purpose |
 | --- | --- |
 | [abr-au](mcp-servers/abr-au/) | Australian Business Register (ABN Lookup) data: offline ABN/ACN validation, a local bulk-extract index, and optional live ABR web services. |
-| [writing-au](mcp-servers/writing-au/) | Deterministic Australian English writing checks: spelling, grammar, and reading level. |
 | [ism-requirements-au](mcp-servers/ism-requirements-au/) | Derive and track the Australian Government ISM, Essentials and PSPF requirements for a system: which obligations and controls apply, what in a repository would stop authorisation, and deterministic control tracking with an SSP annex export. Verified quotations; offline and read-only. |
+| [privacy-review-au](mcp-servers/privacy-review-au/) | Privacy review under the Australian Privacy Principles: reads code and documents, ranks findings by decided-case precedent, face-value APP contraventions and cautions, lists the open questions with the evidence that would settle them, and drafts the threshold assessment. Verified citations. |
+| [writing-au](mcp-servers/writing-au/) | Deterministic Australian English writing checks: spelling, grammar, and reading level. |
 
 Each server is an independent Python package (its own `pyproject.toml`),
 released on its own, in the same way as
@@ -67,8 +68,9 @@ civic-lab/
 │       └── SKILL.md
 └── mcp-servers/
     ├── abr-au/                     # MCP server: ABN Lookup / ABR data
-    ├── writing-au/                 # MCP server: AU English writing checks
-    └── ism-requirements-au/        # MCP server: ISM requirements, authorisation readiness, control tracking
+    ├── ism-requirements-au/        # MCP server: ISM requirements, authorisation readiness, control tracking
+    ├── privacy-review-au/          # MCP server: privacy review and threshold assessment (APPs)
+    └── writing-au/                 # MCP server: AU English writing checks
 ```
 
 ## Licence

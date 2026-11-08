@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.DeepCivic/privacy-review-au",
+  "title": "Australian privacy review (APPs)",
+  "description": "Review a project for privacy issues under the Australian Privacy Principles. Not legal advice.",
+  "version": "0.2.0",
+  "repository": {
+    "url": "https://github.com/DeepCivic/civic-lab",
+    "source": "github",
+    "subfolder": "mcp-servers/privacy-review-au"
+  },
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/deepcivic/privacy-review-au:0.2.0",
+      "runtimeHint": "docker",
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "-v",
+          "value": "{project_dir}:/work:ro",
+          "description": "The folder to review, mounted read-only at /work. Ask for a review of /work.",
+          "isRequired": true,
+          "variables": {
+            "project_dir": {
+              "description": "Absolute path of the project (repository and documents) to review",
+              "isRequired": true,
+              "format": "filepath"
+            }
+          }
+        }
+      ],
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PRIVACY_REVIEW_AU_LIVE",
+          "description": "Set to 1 to enable probe_deployment, which fetches a public URL and its privacy policy. Off by default.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
