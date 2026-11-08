@@ -1,6 +1,6 @@
 # Release one MCP server package from this monorepo.
 #
-# Push a tag named <package>-v<version>, e.g. `abr-mcp-v0.1.0`. The version
+# Push a tag named <package>-v<version>, e.g. `abr-au-v0.1.0`. The version
 # must equal the package's pyproject.toml version (and server.json's, if present).
 # Each step runs only if the package opts in:
 #

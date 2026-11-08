@@ -1,0 +1,44 @@
+[project]
+name = "ism-requirements-au"
+version = "0.1.0"
+description = "MCP server that helps a project team build a system that can be authorised under the Australian Government Information Security Manual (ISM): derives the obligations, controls, Essentials actions and Essential Eight levels that apply, reviews a repository for what stops authorisation, and tracks control evidence as the system is built. Offline, read-only, verified quotations."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.15"
+authors = [{ name = "DeepCivic" }]
+keywords = ["mcp", "ism", "irap", "essential-eight", "essentials", "pspf", "australia", "cyber-security", "authorisation", "compliance"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+]
+dependencies = [
+    "mcp>=1.22",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.urls]
+Homepage = "https://github.com/DeepCivic/civic-lab/tree/main/mcp-servers/ism-requirements-au"
+Repository = "https://github.com/DeepCivic/civic-lab"
+Documentation = "https://github.com/DeepCivic/civic-lab/tree/main/mcp-servers/ism-requirements-au/docs"
+Changelog = "https://github.com/DeepCivic/civic-lab/blob/main/mcp-servers/ism-requirements-au/CHANGELOG.md"
+
+[project.scripts]
+ism-requirements-au = "ism_requirements_au.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ism_requirements_au"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["tests/fixtures/**/*.pyc"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

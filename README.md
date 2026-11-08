@@ -27,8 +27,9 @@ Australian Government and go-to-market contexts:
 
 | Server | Purpose |
 | --- | --- |
-| [abr-mcp](mcp-servers/abr-mcp/) | Australian Business Register (ABN Lookup) data: offline ABN/ACN validation, a local bulk-extract index, and optional live ABR web services. |
-| [australian-writing-mcp](mcp-servers/australian-writing-mcp/) | Deterministic Australian English writing checks: spelling, grammar, and reading level. |
+| [abr-au](mcp-servers/abr-au/) | Australian Business Register (ABN Lookup) data: offline ABN/ACN validation, a local bulk-extract index, and optional live ABR web services. |
+| [writing-au](mcp-servers/writing-au/) | Deterministic Australian English writing checks: spelling, grammar, and reading level. |
+| [ism-requirements-au](mcp-servers/ism-requirements-au/) | Derive and track the Australian Government ISM, Essentials and PSPF requirements for a system: which obligations and controls apply, what in a repository would stop authorisation, and deterministic control tracking with an SSP annex export. Verified quotations; offline and read-only. |
 
 Each server is an independent Python package (its own `pyproject.toml`),
 released on its own, in the same way as
@@ -65,8 +66,9 @@ civic-lab/
 │   └── oss-solution-architect/
 │       └── SKILL.md
 └── mcp-servers/
-    ├── abr-mcp/                    # MCP server: ABN Lookup / ABR data
-    └── australian-writing-mcp/     # MCP server: AU English writing checks
+    ├── abr-au/                     # MCP server: ABN Lookup / ABR data
+    ├── writing-au/                 # MCP server: AU English writing checks
+    └── ism-requirements-au/        # MCP server: ISM requirements, authorisation readiness, control tracking
 ```
 
 ## Licence
@@ -75,7 +77,7 @@ This repository is licensed under the [Apache License 2.0](LICENSE).
 
 Individual subprojects may bundle third-party data or ported code under their
 own terms; these are attributed in-place (for example,
-[mcp-servers/australian-writing-mcp/NOTICE](mcp-servers/australian-writing-mcp/NOTICE) and the
+[mcp-servers/writing-au/NOTICE](mcp-servers/writing-au/NOTICE) and the
 bundled dictionary's licence). See each subproject's `README` for details.
-`abr-mcp` bundles no register data; it reads the ABN Bulk Extract you download
-(CC BY 3.0 AU), see [mcp-servers/abr-mcp/NOTICE](mcp-servers/abr-mcp/NOTICE).
+`abr-au` bundles no register data; it reads the ABN Bulk Extract you download
+(CC BY 3.0 AU), see [mcp-servers/abr-au/NOTICE](mcp-servers/abr-au/NOTICE).
