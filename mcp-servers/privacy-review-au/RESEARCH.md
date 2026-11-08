@@ -6,7 +6,7 @@ checked, and the technologies used. It also says which parts are judgement rathe
 
 ## What it contains
 
-The server ships one compiled, read-only knowledge base, `src/au_privacy_review/data/kb.json`, built
+The server ships one compiled, read-only knowledge base, `src/privacy_review_au/data/kb.json`, built
 on 7 November 2026. Nothing is fetched at run time.
 
 | Part | Count | What each holds |
@@ -110,15 +110,15 @@ verified, every heuristic backed or flagged, and nothing quoted that may not be 
 These parts are written by hand in the server code. They are reasoned choices, not outputs of the
 pipeline, and they are worth reviewing before you rely on them:
 
-- **The levels** (`src/au_privacy_review/review.py`): when a finding is critical, high or caution.
-- **The decided-case patterns** (`src/au_privacy_review/precedents.py`): which decisions a finding is
+- **The levels** (`src/privacy_review_au/review.py`): when a finding is critical, high or caution.
+- **The decided-case patterns** (`src/privacy_review_au/precedents.py`): which decisions a finding is
   matched to, the condition that must be visible, and the one-sentence fact patterns. A pattern counts
   only when its decision is final, and that check is made at run time from the source's recorded status.
-- **The observation kinds and document phrases** (`src/au_privacy_review/observations.py`): what facts can
+- **The observation kinds and document phrases** (`src/privacy_review_au/observations.py`): what facts can
   be recorded, and which phrases mark a passage as worth reading.
-- **The detectors** (`src/au_privacy_review/scan/detectors.py`): the code patterns, and the severity each
+- **The detectors** (`src/privacy_review_au/scan/detectors.py`): the code patterns, and the severity each
   is given.
-- **The threshold questions and outcome logic** (`src/au_privacy_review/threshold.py`).
+- **The threshold questions and outcome logic** (`src/privacy_review_au/threshold.py`).
 
 ## Technologies
 

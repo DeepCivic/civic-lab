@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from au_privacy_review import kb as _kb
-from au_privacy_review import threshold as T
-from au_privacy_review.scan.scanner import scan_path
+from privacy_review_au import kb as _kb
+from privacy_review_au import threshold as T
+from privacy_review_au.scan.scanner import scan_path
 
 FIX = Path(__file__).parent / "fixtures"
 KB = _kb.load()

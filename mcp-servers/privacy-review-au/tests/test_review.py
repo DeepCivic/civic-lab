@@ -2,11 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from au_privacy_review import kb as _kb
-from au_privacy_review import observations as O
-from au_privacy_review import precedents as P
-from au_privacy_review import review as R
-from au_privacy_review import threshold as T
+from privacy_review_au import kb as _kb
+from privacy_review_au import observations as O
+from privacy_review_au import precedents as P
+from privacy_review_au import review as R
+from privacy_review_au import threshold as T
 
 FIX = Path(__file__).parent / "fixtures"
 KB = _kb.load()

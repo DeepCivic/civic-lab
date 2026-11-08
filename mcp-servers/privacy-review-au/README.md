@@ -1,4 +1,4 @@
-# au-privacy-review
+# privacy-review-au
 
 An [MCP](https://modelcontextprotocol.io) server that reviews an Australian project for privacy issues
 under the Australian Privacy Principles (APPs). It works like a static analyser for privacy. It reads
@@ -66,8 +66,8 @@ You need [uv](https://docs.astral.sh/uv/). `uvx` fetches and runs the server; th
   "mcpServers": {
     "privacy": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/au-privacy-review",
-               "au-privacy-review"]
+      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/privacy-review-au",
+               "privacy-review-au"]
     }
   }
 }
@@ -128,18 +128,18 @@ The server can read nothing else.
   "mcpServers": {
     "privacy": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-v", "/path/to/my-project:/work:ro", "ghcr.io/deepcivic/au-privacy-review"]
+      "args": ["run", "-i", "--rm", "-v", "/path/to/my-project:/work:ro", "ghcr.io/deepcivic/privacy-review-au"]
     }
   }
 }
 ```
 
 ```bash
-docker run --rm -v "$PWD":/work:ro ghcr.io/deepcivic/au-privacy-review review /work --fail-on high
+docker run --rm -v "$PWD":/work:ro ghcr.io/deepcivic/privacy-review-au review /work --fail-on high
 ```
 
 The image is published when a release is tagged. Until then, build it locally with
-`docker build -t au-privacy-review .`.
+`docker build -t privacy-review-au .`.
 
 ## Configuration
 
@@ -147,17 +147,17 @@ The server is isolated by default. It reads only the paths you give it and makes
 
 | Setting | Effect |
 | --- | --- |
-| `AU_PRIVACY_REVIEW_ROOTS` (path list) or `serve --root DIR` | Only these directories may be read. Required for HTTP mode. |
-| `AU_PRIVACY_REVIEW_LIVE=1` or `serve --allow-live` | Enables `probe_deployment`, which fetches the page you name and its privacy policy. |
+| `PRIVACY_REVIEW_AU_ROOTS` (path list) or `serve --root DIR` | Only these directories may be read. Required for HTTP mode. |
+| `PRIVACY_REVIEW_AU_LIVE=1` or `serve --allow-live` | Enables `probe_deployment`, which fetches the page you name and its privacy policy. |
 | `serve --http [--host H --port P]` | Streamable HTTP at `/mcp`. Refuses to start without roots, because it reads files for remote clients. |
 
 ## Command line and CI
 
 ```bash
-au-privacy-review review path/to/repo --doc path/to/docs --out review.md
-au-privacy-review review path/to/repo --fail-on high       # exit 1 on any high or critical finding
-au-privacy-review threshold path/to/repo --observations obs.json --out threshold.md
-au-privacy-review kinds | questions | status
+privacy-review-au review path/to/repo --doc path/to/docs --out review.md
+privacy-review-au review path/to/repo --fail-on high       # exit 1 on any high or critical finding
+privacy-review-au threshold path/to/repo --observations obs.json --out threshold.md
+privacy-review-au kinds | questions | status
 ```
 
 To silence a finding you have checked, put `privacy-review: ignore` on the line, or

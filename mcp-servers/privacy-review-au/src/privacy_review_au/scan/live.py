@@ -1,7 +1,7 @@
 """Opt-in live probe of a deployed URL.
 
 privacy-review: ignore-file
- Disabled unless AU_PRIVACY_REVIEW_LIVE=1 (or the
+ Disabled unless PRIVACY_REVIEW_AU_LIVE=1 (or the
 server is started with --allow-live). Makes a small number of GET requests to the
 target origin only: the page, robots-free privacy policy discovery from links on
 that page. It does not execute JavaScript, submit forms, or follow third-party links.
@@ -17,12 +17,12 @@ import httpx
 
 from . import detectors as D
 
-UA = "au-privacy-review (static privacy probe; +https://github.com/DeepCivic/civic-lab)"
+UA = "privacy-review-au (static privacy probe; +https://github.com/DeepCivic/civic-lab)"
 TRACKER_COOKIES = re.compile(r"^(?:_fbp|_fbc|_ga|_gid|_gcl_\w+|_ttp|_uetsid|_uetvid|_hjid|_hj\w+|ajs_\w+|mp_\w+|_clck|_clsk|li_\w+)$")
 
 
 def live_enabled() -> bool:
-    return os.environ.get("AU_PRIVACY_REVIEW_LIVE", "").lower() in {"1", "true", "yes", "on"}
+    return os.environ.get("PRIVACY_REVIEW_AU_LIVE", "").lower() in {"1", "true", "yes", "on"}
 
 
 class LiveDisabled(RuntimeError):
@@ -31,7 +31,7 @@ class LiveDisabled(RuntimeError):
 
 def probe(url: str, timeout: float = 15.0) -> dict:
     if not live_enabled():
-        raise LiveDisabled("live probing is off. Start the server with AU_PRIVACY_REVIEW_LIVE=1 (or `au-privacy-review serve --allow-live`) to enable it.")
+        raise LiveDisabled("live probing is off. Start the server with PRIVACY_REVIEW_AU_LIVE=1 (or `privacy-review-au serve --allow-live`) to enable it.")
     p = urlparse(url)
     if p.scheme not in ("http", "https") or not p.netloc:
         raise ValueError("url must be an absolute http(s) URL")

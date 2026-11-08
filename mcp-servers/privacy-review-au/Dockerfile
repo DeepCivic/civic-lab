@@ -2,11 +2,11 @@
 #   docker run -i --rm -v "$PWD":/work:ro IMAGE                                  # stdio MCP server (default)
 #   docker run --rm -v "$PWD":/work:ro IMAGE review /work --fail-on high         # CLI review, e.g. in CI
 #   docker run --rm -p 8000:8000 -v /srv/repos:/work:ro IMAGE serve --http        # streamable-HTTP /mcp
-# Add -e AU_PRIVACY_REVIEW_LIVE=1 to enable probe_deployment (network). Everything else is offline.
+# Add -e PRIVACY_REVIEW_AU_LIVE=1 to enable probe_deployment (network). Everything else is offline.
 # Multi-arch: `docker buildx build --platform linux/amd64,linux/arm64 .`
 FROM python:3.15-slim
 
-LABEL io.modelcontextprotocol.server.name="io.github.DeepCivic/au-privacy-review" \
+LABEL io.modelcontextprotocol.server.name="io.github.DeepCivic/privacy-review-au" \
       org.opencontainers.image.source="https://github.com/DeepCivic/civic-lab" \
       org.opencontainers.image.description="Privacy review under the Australian Privacy Principles. Decision support, not legal advice." \
       org.opencontainers.image.licenses="Apache-2.0"
@@ -24,10 +24,10 @@ RUN pip install --no-cache-dir . \
  && useradd --create-home --uid 10001 reviewer \
  && mkdir /work
 
-# The MCP server may read only /work (AU_PRIVACY_REVIEW_ROOTS); the CLI reads whatever path you give it.
+# The MCP server may read only /work (PRIVACY_REVIEW_AU_ROOTS); the CLI reads whatever path you give it.
 # HOST=0.0.0.0 only matters with --http, where the container port is the
 # boundary; publish it deliberately.
-ENV AU_PRIVACY_REVIEW_ROOTS=/work \
+ENV PRIVACY_REVIEW_AU_ROOTS=/work \
     HOST=0.0.0.0 \
     PORT=8000 \
     PYTHONUNBUFFERED=1
@@ -35,5 +35,5 @@ USER reviewer
 WORKDIR /work
 EXPOSE 8000
 
-ENTRYPOINT ["au-privacy-review"]
+ENTRYPOINT ["privacy-review-au"]
 CMD ["serve"]

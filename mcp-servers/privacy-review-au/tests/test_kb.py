@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from au_privacy_review import kb as _kb
-from au_privacy_review.scan import detectors as D
+from privacy_review_au import kb as _kb
+from privacy_review_au.scan import detectors as D
 
 ROOT = Path(__file__).resolve().parents[1]
 KB = _kb.load()
@@ -64,7 +64,7 @@ def test_apps_present_and_future_text_dated():
 
 
 def test_local_only_text_not_shipped():
-    raw = (ROOT / "src/au_privacy_review/data/kb.json").read_text(encoding="utf-8")
+    raw = (ROOT / "src/privacy_review_au/data/kb.json").read_text(encoding="utf-8")
     assert "lack of precision" in raw
     assert "Rehnquist CJ recently observed" not in raw
 

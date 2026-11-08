@@ -1,11 +1,11 @@
-au-privacy-review
+privacy-review-au
 Copyright DeepCivic contributors. Licensed under the Apache License 2.0.
 
-au-privacy-review is an independent tool. It is not affiliated with, endorsed or
+privacy-review-au is an independent tool. It is not affiliated with, endorsed or
 approved by the Office of the Australian Information Commissioner, any court or
 tribunal, or the Commonwealth of Australia. It does not provide legal advice.
 
-The bundled knowledge base (src/au_privacy_review/data/kb.json) contains quotations
+The bundled knowledge base (src/privacy_review_au/data/kb.json) contains quotations
 from, and the text of, the following, used under their terms:
 
 * Commonwealth legislation (Privacy Act 1988 and instruments, including the Privacy

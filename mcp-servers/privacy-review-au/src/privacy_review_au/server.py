@@ -1,10 +1,10 @@
-"""au-privacy-review MCP server: a privacy review of an Australian project (code, documents and
+"""privacy-review-au MCP server: a privacy review of an Australian project (code, documents and
 recorded observations) under the Australian Privacy Principles, ahead of or as part of a privacy threshold
 assessment.
 
-Run with:  au-privacy-review                                  (stdio)
-           au-privacy-review serve --http --root /srv/repos   (streamable-HTTP /mcp)
-           au-privacy-review serve --allow-live               (enable probe_deployment)
+Run with:  privacy-review-au                                  (stdio)
+           privacy-review-au serve --http --root /srv/repos   (streamable-HTTP /mcp)
+           privacy-review-au serve --allow-live               (enable probe_deployment)
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from . import threshold as _th
 from .scan import live as _live
 from .scan.scanner import scan_path
 
-ROOTS_ENV = "AU_PRIVACY_REVIEW_ROOTS"
+ROOTS_ENV = "PRIVACY_REVIEW_AU_ROOTS"
 
 INSTRUCTIONS = """\
 Reviews an Australian project for privacy issues under the Australian Privacy Principles (Privacy Act 1988
@@ -71,7 +71,7 @@ How to use it well:
 - This is decision support for the team and its privacy officer, not legal advice.
 """
 
-mcp = _Server("au-privacy-review", instructions=INSTRUCTIONS)
+mcp = _Server("privacy-review-au", instructions=INSTRUCTIONS)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
@@ -457,7 +457,7 @@ def _applicability(entity, annual_turnover_aud, provides_health_service, disclos
 def probe_deployment(url: Annotated[str, Field(description="Public URL of the deployed site")]) -> dict[str, Any]:
     """OPT-IN, NETWORK. Fetch a deployed page (no JavaScript) and its privacy policy, and check HTTPS/HSTS,
     tracking cookies on first response, third-party scripts and pixels, and (by keyword) APP 1.4 policy contents.
-    Disabled unless the server was started with AU_PRIVACY_REVIEW_LIVE=1 or --allow-live."""
+    Disabled unless the server was started with PRIVACY_REVIEW_AU_LIVE=1 or --allow-live."""
     kb = _kb.load()
     res = _live.probe(url)
     for f in res["findings"]:

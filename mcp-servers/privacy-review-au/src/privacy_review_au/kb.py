@@ -71,5 +71,5 @@ class KB:
 
 @lru_cache(maxsize=1)
 def load() -> KB:
-    with resources.files("au_privacy_review").joinpath("data/kb.json").open(encoding="utf-8") as f:
+    with resources.files("privacy_review_au").joinpath("data/kb.json").open(encoding="utf-8") as f:
         return KB(json.load(f))

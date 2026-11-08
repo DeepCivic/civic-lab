@@ -1,13 +1,13 @@
-"""au-privacy-review: serve the MCP server, or review a project from the command line.
+"""privacy-review-au: serve the MCP server, or review a project from the command line.
 
-  au-privacy-review                         serve over stdio (what MCP clients launch)
-  au-privacy-review serve [--http --root DIR ...] [--allow-live]
-  au-privacy-review review PATH [--doc DOCS ...] [--observations obs.json] [--json | --out review.md] [--fail-on high]
-  au-privacy-review threshold PATH [--doc DOCS] [--observations obs.json] [--answers answers.json] [--json | --out record.md]
-  au-privacy-review questions               list the threshold questions
-  au-privacy-review kinds                   list the observation kinds (for an observations file)
-  au-privacy-review scan PATH [--json] [--min-severity S]    the raw detector signals
-  au-privacy-review status
+  privacy-review-au                         serve over stdio (what MCP clients launch)
+  privacy-review-au serve [--http --root DIR ...] [--allow-live]
+  privacy-review-au review PATH [--doc DOCS ...] [--observations obs.json] [--json | --out review.md] [--fail-on high]
+  privacy-review-au threshold PATH [--doc DOCS] [--observations obs.json] [--answers answers.json] [--json | --out record.md]
+  privacy-review-au questions               list the threshold questions
+  privacy-review-au kinds                   list the observation kinds (for an observations file)
+  privacy-review-au scan PATH [--json] [--min-severity S]    the raw detector signals
+  privacy-review-au status
 
 `review` exits 1 when a finding is at or above --fail-on (default: high), so it can gate CI.
 `scan` exits 1 when there is a high or critical rule-tier finding.
@@ -42,7 +42,7 @@ def _evidence(p: argparse.ArgumentParser) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    ap = argparse.ArgumentParser(prog="au-privacy-review", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(prog="privacy-review-au", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd")
     s = sub.add_parser("serve")
     s.add_argument("--http", action="store_true")
@@ -71,9 +71,9 @@ def main(argv: list[str] | None = None) -> None:
 
     if a.cmd in (None, "serve"):
         if getattr(a, "allow_live", False):
-            os.environ["AU_PRIVACY_REVIEW_LIVE"] = "1"
+            os.environ["PRIVACY_REVIEW_AU_LIVE"] = "1"
         if getattr(a, "root", None):
-            os.environ["AU_PRIVACY_REVIEW_ROOTS"] = os.pathsep.join(str(Path(r).resolve()) for r in a.root)
+            os.environ["PRIVACY_REVIEW_AU_ROOTS"] = os.pathsep.join(str(Path(r).resolve()) for r in a.root)
         from .server import main as serve
 
         serve(http=getattr(a, "http", False), host=getattr(a, "host", "127.0.0.1"), port=getattr(a, "port", 8000))

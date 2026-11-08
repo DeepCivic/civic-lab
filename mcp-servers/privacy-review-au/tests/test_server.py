@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from au_privacy_review import server
-from au_privacy_review.server import ToolError
-from au_privacy_review.scan import live
+from privacy_review_au import server
+from privacy_review_au.server import ToolError
+from privacy_review_au.scan import live
 
 
 def test_tools_listed():
@@ -43,7 +43,7 @@ def test_applicability():
 
 
 def test_live_probe_disabled_by_default(monkeypatch):
-    monkeypatch.delenv("AU_PRIVACY_REVIEW_LIVE", raising=False)
+    monkeypatch.delenv("PRIVACY_REVIEW_AU_LIVE", raising=False)
     with pytest.raises(live.LiveDisabled):
         live.probe("https://example.com")
 

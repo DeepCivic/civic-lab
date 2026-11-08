@@ -4,10 +4,10 @@ import json
 import re
 from pathlib import Path
 
-import au_privacy_review
-from au_privacy_review import observations as O
-from au_privacy_review import precedents as P
-from au_privacy_review import threshold as T
+import privacy_review_au
+from privacy_review_au import observations as O
+from privacy_review_au import precedents as P
+from privacy_review_au import threshold as T
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
@@ -39,7 +39,7 @@ def test_relative_links_resolve():
 
 
 def test_registry_entry_matches_package():
-    v = au_privacy_review.__version__
+    v = privacy_review_au.__version__
     server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
     assert server["version"] == v
     assert all(p["identifier"].endswith(":" + v) for p in server["packages"] if p["registryType"] == "oci")

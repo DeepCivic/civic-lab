@@ -22,8 +22,8 @@ The server is now a privacy review first, and a threshold assessment second.
   through every threshold question.
 - New CLI commands `review` (with `--fail-on` for CI) and `kinds`. `threshold` accepts `--doc` and
   `--observations`.
-- **Renamed** from `privacy-impact-threshold-au` to `au-privacy-review`. The package, module, command,
-  environment variables (`AU_PRIVACY_REVIEW_ROOTS`, `AU_PRIVACY_REVIEW_LIVE`) and the ignore markers
+- **Renamed** from `privacy-impact-threshold-au` to `privacy-review-au`. The package, module, command,
+  environment variables (`PRIVACY_REVIEW_AU_ROOTS`, `PRIVACY_REVIEW_AU_LIVE`) and the ignore markers
   (`privacy-review: ignore`) all changed.
 - Documentation reorganised into `docs/`, with `RESEARCH.md` describing what the knowledge base contains
   and how it was made. The research working files are no longer in this folder.

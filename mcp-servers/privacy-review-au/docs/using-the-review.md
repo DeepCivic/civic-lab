@@ -93,7 +93,7 @@ code evidence, the record flags the conflict.
 
 ### Observation kinds
 
-`list_observation_kinds` (or `au-privacy-review kinds`) gives the full descriptions and
+`list_observation_kinds` (or `privacy-review-au kinds`) gives the full descriptions and
 what to look for.
 
 | Kind | Label | Answers | Level when present |
@@ -147,7 +147,7 @@ commences on 10 December 2026; until then they are reported at caution.
 ## In CI
 
 ```bash
-au-privacy-review review . --doc docs --out privacy-review.md --fail-on high
+privacy-review-au review . --doc docs --out privacy-review.md --fail-on high
 ```
 
 The command exits 1 when any finding is at or above `--fail-on` (`critical`, `high`, `caution` or

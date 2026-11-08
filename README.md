@@ -29,7 +29,7 @@ Australian Government and go-to-market contexts:
 | --- | --- |
 | [abr-mcp](mcp-servers/abr-mcp/) | Australian Business Register (ABN Lookup) data: offline ABN/ACN validation, a local bulk-extract index, and optional live ABR web services. |
 | [australian-writing-mcp](mcp-servers/australian-writing-mcp/) | Deterministic Australian English writing checks: spelling, grammar, and reading level. |
-| [au-privacy-review](mcp-servers/au-privacy-review/) | Privacy review under the Australian Privacy Principles: reads code and documents, ranks findings by decided-case precedent, face-value APP contraventions and cautions, lists the open questions with the evidence that would settle them, and drafts the threshold assessment. Verified citations. |
+| [privacy-review-au](mcp-servers/privacy-review-au/) | Privacy review under the Australian Privacy Principles: reads code and documents, ranks findings by decided-case precedent, face-value APP contraventions and cautions, lists the open questions with the evidence that would settle them, and drafts the threshold assessment. Verified citations. |
 
 Each server is an independent Python package (its own `pyproject.toml`),
 released on its own, in the same way as
@@ -68,7 +68,7 @@ civic-lab/
 └── mcp-servers/
     ├── abr-mcp/                    # MCP server: ABN Lookup / ABR data
     ├── australian-writing-mcp/     # MCP server: AU English writing checks
-    └── au-privacy-review/          # MCP server: privacy review and threshold assessment (APPs)
+    └── privacy-review-au/          # MCP server: privacy review and threshold assessment (APPs)
 ```
 
 ## Licence

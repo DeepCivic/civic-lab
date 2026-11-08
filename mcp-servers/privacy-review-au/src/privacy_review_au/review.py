@@ -357,7 +357,7 @@ def _esc(s: object) -> str:
 
 def render_markdown(r: dict) -> str:
     L = [f"# Privacy review: {r['project']}", "",
-         f"_Generated {r['as_at']} by au-privacy-review {r['tool_version']} (knowledge base {r['kb_built']}). "
+         f"_Generated {r['as_at']} by privacy-review-au {r['tool_version']} (knowledge base {r['kb_built']}). "
          "Signals for the team and its privacy officer, not legal advice._", "", f"**{r['headline']}**", ""]
     for lv in ("critical", "high", "caution"):
         fs = [f for f in r["findings"] if f["level"] == lv]

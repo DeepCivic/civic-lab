@@ -449,7 +449,7 @@ def _md_escape(s: str) -> str:
 def render_markdown(r: dict, description: str | None = None) -> str:
     L: list[str] = []
     L += [f"# Privacy threshold assessment: {r['project']}", "",
-          f"**Status:** DRAFT, generated {r['as_at']} by au-privacy-review {r['tool_version']} (knowledge base built "
+          f"**Status:** DRAFT, generated {r['as_at']} by privacy-review-au {r['tool_version']} (knowledge base built "
           f"{r['kb_built']}). Every answer below needs review by the project team and the privacy officer. Not legal advice.", ""]
     L += ["## 1. Project", "", description or "_Describe the project: what it does, who it affects, and what is new or changing._", ""]
     L += ["## 2. Outcome", "", f"**{r['outcome_label']}**", ""] + [f"- {x}" for x in r["reasons"]] + [""]

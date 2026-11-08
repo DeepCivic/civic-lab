@@ -2,8 +2,8 @@ import datetime as dt
 import json
 from pathlib import Path
 
-from au_privacy_review import kb as _kb
-from au_privacy_review.scan.scanner import scan_path
+from privacy_review_au import kb as _kb
+from privacy_review_au.scan.scanner import scan_path
 
 FIX = Path(__file__).parent / "fixtures"
 

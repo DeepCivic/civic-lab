@@ -1,5 +1,5 @@
 [project]
-name = "au-privacy-review"
+name = "privacy-review-au"
 version = "0.2.0"
 description = "MCP server that reviews an Australian project for privacy issues under the Australian Privacy Principles: findings ranked by decided-case precedent, face-value APP contraventions and cautions, open questions with the evidence that would settle them, and a draft privacy threshold assessment. Verified legislation and case-law citations."
 readme = "README.md"
@@ -21,20 +21,20 @@ dependencies = [
 dev = ["pytest>=7.0"]
 
 [project.urls]
-Homepage = "https://github.com/DeepCivic/civic-lab/tree/main/mcp-servers/au-privacy-review"
+Homepage = "https://github.com/DeepCivic/civic-lab/tree/main/mcp-servers/privacy-review-au"
 Repository = "https://github.com/DeepCivic/civic-lab"
-Documentation = "https://github.com/DeepCivic/civic-lab/tree/main/mcp-servers/au-privacy-review/docs"
-Changelog = "https://github.com/DeepCivic/civic-lab/blob/main/mcp-servers/au-privacy-review/CHANGELOG.md"
+Documentation = "https://github.com/DeepCivic/civic-lab/tree/main/mcp-servers/privacy-review-au/docs"
+Changelog = "https://github.com/DeepCivic/civic-lab/blob/main/mcp-servers/privacy-review-au/CHANGELOG.md"
 
 [project.scripts]
-au-privacy-review = "au_privacy_review.cli:main"
+privacy-review-au = "privacy_review_au.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/au_privacy_review"]
+packages = ["src/privacy_review_au"]
 
 [tool.hatch.build.targets.sdist]
 exclude = ["tests/fixtures/**/*.pyc"]
@@ -42,4 +42,4 @@ exclude = ["tests/fixtures/**/*.pyc"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-markers = ["live: makes network calls (AU_PRIVACY_REVIEW_LIVE_TESTS=1)"]
+markers = ["live: makes network calls (PRIVACY_REVIEW_AU_LIVE_TESTS=1)"]
