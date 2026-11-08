@@ -130,7 +130,7 @@ class AbrService:
         if source == "local" and not local_ok:
             raise IndexUnavailable(
                 f"No usable local index at {self.index.path}. Build one with the build_index tool "
-                "or `abr-mcp update-index`, or use source='web'."
+                "or `abr-au update-index`, or use source='web'."
             )
         if source == "web" and not web_ok:
             raise WebError("ABR web services are not configured: set ABR_GUID.")
@@ -138,7 +138,7 @@ class AbrService:
             raise IndexUnavailable(
                 "No ABR backend is configured: set ABR_GUID for the live ABN Lookup web services "
                 "(free GUID: https://abr.business.gov.au/Tools/WebServices). Optionally, build a local "
-                "index with the build_index tool or `abr-mcp update-index`."
+                "index with the build_index tool or `abr-au update-index`."
             )
         return (source in ("auto", "local") and local_ok, source in ("auto", "web") and web_ok)
 
@@ -487,7 +487,7 @@ class AbrService:
                 if age is not None and age > 14:
                     out["local_index"]["stale_warning"] = (
                         f"Extract is {age} days old; the ABR publishes weekly. "
-                        "Refresh with the build_index tool or `abr-mcp update-index`."
+                        "Refresh with the build_index tool or `abr-au update-index`."
                     )
             except IndexUnavailable as exc:
                 out["local_index"]["error"] = str(exc)

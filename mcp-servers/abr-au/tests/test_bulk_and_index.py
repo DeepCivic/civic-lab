@@ -19,8 +19,8 @@ from conftest import (
     write_full_extract,
 )
 
-from abr_mcp.bulk import NotABulkExtract, discover_sources, iter_extract, records_from
-from abr_mcp.index import BuildError, LocalIndex, build_index
+from abr_au.bulk import NotABulkExtract, discover_sources, iter_extract, records_from
+from abr_au.index import BuildError, LocalIndex, build_index
 
 
 def parse(records):

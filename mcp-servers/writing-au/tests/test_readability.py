@@ -1,4 +1,4 @@
-from australian_writing.readability import get_reading_level
+from writing_au.readability import get_reading_level
 
 
 def test_empty_text():

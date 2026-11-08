@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from abr_mcp.identifiers import ABN_WEIGHTS, ACN_WEIGHTS
+from abr_au.identifiers import ABN_WEIGHTS, ACN_WEIGHTS
 
 
 def make_acn(body8: str) -> str:
@@ -140,7 +140,7 @@ ALL_RECORDS = {1: [abr_company(), ABR_IND], 2: [ABR_TRUST], 20: [ABR_CHARITY]}
 
 @pytest.fixture()
 def built_index(tmp_path: Path) -> Path:
-    from abr_mcp.index import build_index
+    from abr_au.index import build_index
 
     src = write_full_extract(tmp_path / "extract", ALL_RECORDS)
     db = tmp_path / "abr.sqlite"

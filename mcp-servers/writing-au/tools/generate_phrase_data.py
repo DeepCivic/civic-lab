@@ -4,7 +4,7 @@ Usage:
     python tools/generate_phrase_data.py /path/to/harper/harper-core/src/linting/phrase_set_corrections/mod.rs
 
 Extracts both the 1-to-1 and many-to-many phrase mappings and writes them to
-src/australian_writing/_phrase_data.py. Harper is Apache-2.0 licensed; see NOTICE.
+src/writing_au/_phrase_data.py. Harper is Apache-2.0 licensed; see NOTICE.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import re
 import sys
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent.parent / "src" / "australian_writing" / "_phrase_data.py"
+OUT = Path(__file__).resolve().parent.parent / "src" / "writing_au" / "_phrase_data.py"
 
 
 def _norm(s: str) -> str:

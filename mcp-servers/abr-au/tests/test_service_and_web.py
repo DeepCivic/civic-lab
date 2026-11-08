@@ -6,9 +6,9 @@ import httpx
 import pytest
 from conftest import ABN_CHARITY, ABN_CO, ABN_IND, ABN_TRUST, ACN_CO
 
-from abr_mcp.index import IndexUnavailable, LocalIndex
-from abr_mcp.service import AbrService
-from abr_mcp.web import AbrWebClient, WebError, parse_jsonp
+from abr_au.index import IndexUnavailable, LocalIndex
+from abr_au.service import AbrService
+from abr_au.web import AbrWebClient, WebError, parse_jsonp
 
 GUID = "00000000-aaaa-bbbb-cccc-123456789abc"
 LIVE_ABN = "51824753556"
@@ -243,7 +243,7 @@ def test_status_without_index():
 
 
 def test_mcp_tools_registered_and_callable(built_index: Path, monkeypatch):
-    from abr_mcp import server
+    from abr_au import server
 
     monkeypatch.setattr(server, "_service", svc(built_index))
     tools = {t.name for t in asyncio.run(server.mcp.list_tools())}
@@ -256,7 +256,7 @@ def test_mcp_tools_registered_and_callable(built_index: Path, monkeypatch):
 
 def test_mcp_errors_keep_their_message(monkeypatch):
     """SDKs hide unexpected exceptions; ours must reach the client verbatim."""
-    from abr_mcp import server
+    from abr_au import server
 
     monkeypatch.setattr(server, "_service", svc(None))
     with pytest.raises(Exception, match="ABR_GUID"):
@@ -296,7 +296,7 @@ def test_web_search_drops_trading_names_by_default():
 
 
 def test_unofficial_disclaimer_is_surfaced(built_index: Path):
-    from abr_mcp import server
+    from abr_au import server
 
     st = svc(built_index).status()
     assert "not affiliated with, endorsed or approved" in st["disclaimer"]

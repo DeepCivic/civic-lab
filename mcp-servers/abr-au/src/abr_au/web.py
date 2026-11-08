@@ -80,7 +80,7 @@ class AbrWebClient:
             try:
                 with httpx.Client(
                     base_url=self.base_url, timeout=self.timeout, transport=self._transport,
-                    headers={"User-Agent": "abr-mcp"}, follow_redirects=False,
+                    headers={"User-Agent": "abr-au"}, follow_redirects=False,
                 ) as client:
                     resp = client.get(endpoint, params=query)
                 if resp.status_code >= 500:

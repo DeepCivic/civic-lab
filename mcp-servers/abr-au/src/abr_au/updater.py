@@ -1,7 +1,7 @@
 """Download the ABN Bulk Extract from data.gov.au and build a local index from it.
 
-Shared by the CLI (`abr-mcp update-index`) and the MCP `build_index` tool. The index is optional:
-without one, abr-mcp validates identifiers offline and looks records up through the live ABN Lookup
+Shared by the CLI (`abr-au update-index`) and the MCP `build_index` tool. The index is optional:
+without one, abr-au validates identifiers offline and looks records up through the live ABN Lookup
 web services (with an ABR_GUID).
 """
 
@@ -23,7 +23,7 @@ DOWNLOAD_BYTES_ESTIMATE = 1_000_000_000  # the 20 zips, used when data.gov.au do
 
 def client() -> httpx.Client:
     return httpx.Client(timeout=httpx.Timeout(60.0, read=300.0),
-                        headers={"User-Agent": "abr-mcp"}, follow_redirects=True)
+                        headers={"User-Agent": "abr-au"}, follow_redirects=True)
 
 
 def zip_resources(c: httpx.Client) -> list[dict[str, Any]]:

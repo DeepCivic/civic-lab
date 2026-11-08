@@ -45,7 +45,7 @@ If the user supplies existing text, treat it as a review: keep mandated wording 
 
 ### Step 3: Quality check
 Run the **Agent QA Checklist** internally. Fix every issue.
-If the `australian-writing-mcp` tools are available, run `check_spelling`, `check_grammar` and `get_reading_level` on the draft and resolve findings before returning it.
+If the `writing-au` tools are available, run `check_spelling`, `check_grammar` and `get_reading_level` on the draft and resolve findings before returning it.
 Return the final draft, followed by the completed checklist and a short list of any open questions (ambiguous obligations, undefined terms, missing facts).
 
 ---

@@ -3,7 +3,7 @@
 An [MCP](https://modelcontextprotocol.io) server that gives any LLM client
 reliable access to **Australian Business Register** (ABN Lookup) data.
 
-> **Unofficial.** abr-mcp is an independent client. It is not affiliated with,
+> **Unofficial.** abr-au is an independent client. It is not affiliated with,
 > endorsed or approved by the Australian Business Register (ABR), the ATO or
 > the Commonwealth of Australia. See [Terms of use](#terms-of-use).
 
@@ -38,7 +38,7 @@ reliable access to **Australian Business Register** (ABN Lookup) data.
   "mcpServers": {
     "abr": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-mcp", "abr-mcp"],
+      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-au", "abr-au"],
       "env": { "ABR_GUID": "your-guid" }
     }
   }
@@ -52,7 +52,7 @@ reliable access to **Australian Business Register** (ABN Lookup) data.
   "servers": {
     "abr": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-mcp", "abr-mcp"],
+      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-au", "abr-au"],
       "env": { "ABR_GUID": "${input:abr_guid}" }
     }
   },
@@ -64,7 +64,7 @@ The validation tools work with no GUID and no index.
 
 ## Your own index (optional)
 
-abr-mcp does not need a local index. With an `ABR_GUID` it looks everything up
+abr-au does not need a local index. With an `ABR_GUID` it looks everything up
 live, and without one the validation tools still work. Build an index only if
 you want offline lookups, bulk joins of thousands of ABNs, or use without a
 GUID. It comes from the weekly
@@ -91,7 +91,7 @@ shows its progress.
 **From the command line:**
 
 ```bash
-ABR="uvx --from git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-mcp abr-mcp"
+ABR="uvx --from git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/abr-au abr-au"
 $ABR estimate --active-only --state VIC          # size before you commit
 $ABR update-index --active-only --state VIC      # download, build, delete the download
 $ABR status
@@ -113,7 +113,7 @@ reports the ABN as unregistered.
 `update-index` does nothing if the published extract and the scope haven't
 changed since the last build, so it is safe to run on a schedule (for example,
 a weekly cron job). The index goes to `$ABR_INDEX_PATH`, or by default
-`~/.local/share/abr-mcp/abr.sqlite` (`%LOCALAPPDATA%\abr-mcp\abr.sqlite` on
+`~/.local/share/abr-au/abr.sqlite` (`%LOCALAPPDATA%\abr-au\abr.sqlite` on
 Windows).
 
 With both backends configured, the default `source="auto"` answers from the
@@ -132,7 +132,7 @@ What a build guarantees:
   this partial index" instead of implying the ABN is unregistered.
 - **One row per ABN.** If an ABN appears twice, the latest record wins.
 
-`abr-mcp download DIR` and `abr-mcp build-index PATH...` do the two steps
+`abr-au download DIR` and `abr-au build-index PATH...` do the two steps
 separately, for zips or XML files you already have. The tool's `source_dir`
 option does the same.
 
@@ -149,7 +149,7 @@ The image holds no data and defaults to a stdio server, like the
 with just a GUID. If you build an index, a named volume holds it:
 
 ```bash
-docker run --rm -v abr-data:/data ghcr.io/deepcivic/abr-mcp update-index --active-only   # optional
+docker run --rm -v abr-data:/data ghcr.io/deepcivic/abr-au update-index --active-only   # optional
 ```
 
 ```json
@@ -157,7 +157,7 @@ docker run --rm -v abr-data:/data ghcr.io/deepcivic/abr-mcp update-index --activ
   "mcpServers": {
     "abr": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "ABR_GUID", "-v", "abr-data:/data:ro", "ghcr.io/deepcivic/abr-mcp"],
+      "args": ["run", "-i", "--rm", "-e", "ABR_GUID", "-v", "abr-data:/data:ro", "ghcr.io/deepcivic/abr-au"],
       "env": { "ABR_GUID": "your-guid" }
     }
   }
@@ -167,8 +167,8 @@ docker run --rm -v abr-data:/data ghcr.io/deepcivic/abr-mcp update-index --activ
 ## Remote (streamable HTTP)
 
 ```bash
-abr-mcp serve --http                                     # 127.0.0.1:8000/mcp
-docker run --rm -p 8000:8000 -v abr-data:/data:ro ghcr.io/deepcivic/abr-mcp serve --http
+abr-au serve --http                                     # 127.0.0.1:8000/mcp
+docker run --rm -p 8000:8000 -v abr-data:/data:ro ghcr.io/deepcivic/abr-au serve --http
 ```
 
 HTTP mode is stateless, so it scales horizontally and suits hosts such as
@@ -255,11 +255,11 @@ both of which ran over the full extract:
 ## Development
 
 ```bash
-cd mcp-servers/abr-mcp
+cd mcp-servers/abr-au
 uv venv && uv pip install -e ".[dev]"
 uv run pytest                          # synthetic data only; no network
 ABR_LIVE=1 uv run pytest -m live       # live ABN Lookup (add ABR_GUID for real lookups)
-npx @modelcontextprotocol/inspector uv run abr-mcp
+npx @modelcontextprotocol/inspector uv run abr-au
 ```
 
 CI ([mcp-servers.yml](../../.github/workflows/mcp-servers.yml)) tests every
@@ -269,25 +269,25 @@ and lists its tools.
 
 ## Releasing
 
-Push a tag named `abr-mcp-v<version>` that matches `pyproject.toml`.
+Push a tag named `abr-au-v<version>` that matches `pyproject.toml`.
 [mcp-release.yml](../../.github/workflows/mcp-release.yml) then publishes:
 
-- the `amd64`/`arm64` image to `ghcr.io/deepcivic/abr-mcp`;
+- the `amd64`/`arm64` image to `ghcr.io/deepcivic/abr-au`;
 - [server.json](server.json) to the [MCP Registry](https://registry.modelcontextprotocol.io).
 
 The package is not published to PyPI. Bump the version in `pyproject.toml`,
-`src/abr_mcp/__init__.py` and `server.json`. A test fails if they disagree.
+`src/abr_au/__init__.py` and `server.json`. A test fails if they disagree.
 
 ## Terms of use
 
 Using the live web services means you accept the
 [ABN Lookup Web Services Agreement](https://abr.business.gov.au/Tools/WebServicesAgreement)
-for your own GUID. Here is how abr-mcp is designed to fit it, and what remains
+for your own GUID. Here is how abr-au is designed to fit it, and what remains
 your responsibility:
 
-| Agreement / ABR guidance | How abr-mcp handles it |
+| Agreement / ABR guidance | How abr-au handles it |
 | --- | --- |
-| A GUID is issued to you under a **non-transferable** licence. | No GUID ships with abr-mcp. Each user or deployment registers its own. A hosted HTTP server spends its operator's GUID, so put it behind authentication (see [Remote](#remote-streamable-http)). |
+| A GUID is issued to you under a **non-transferable** licence. | No GUID ships with abr-au. Each user or deployment registers its own. A hosted HTTP server spends its operator's GUID, so put it behind authentication (see [Remote](#remote-streamable-http)). |
 | Do not suggest the Commonwealth **endorses or is affiliated** with you. | Named and described as an unofficial client. The disclaimer appears in the server instructions, `register_status`, this README and [NOTICE](NOTICE). |
 | Do not use the services in a **false, misleading or deceptive** way. | Every answer carries `provenance` (web service or bulk extract, with dates), and name matches are labelled as candidates. |
 | **Withdrawn** details must be deleted when you're notified. | Web responses are never cached or stored. The local index is rebuilt from scratch by each `update-index`, which drops anything withdrawn from the extract. Anything *you* store from answers remains your responsibility. |

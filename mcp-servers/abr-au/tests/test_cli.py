@@ -4,8 +4,8 @@ from pathlib import Path
 import httpx
 from conftest import ABN_CO, ALL_RECORDS, write_full_extract
 
-from abr_mcp import cli
-from abr_mcp.index import LocalIndex
+from abr_au import cli
+from abr_au.index import LocalIndex
 
 
 def fake_data_gov(tmp_path: Path, last_modified: dict):
@@ -66,11 +66,11 @@ def test_failed_download_reports_error_and_keeps_index(tmp_path: Path, monkeypat
 
 
 def test_http_defaults_to_loopback(monkeypatch):
-    from abr_mcp import server
+    from abr_au import server
 
     seen = {}
     monkeypatch.delenv("HOST", raising=False)
-    monkeypatch.setattr(server.sys, "argv", ["abr-mcp", "--http"])
+    monkeypatch.setattr(server.sys, "argv", ["abr-au", "--http"])
     if server._MCP_V2:
         monkeypatch.setattr(server.mcp, "run", lambda *a, **k: seen.update(k))
         server.main()

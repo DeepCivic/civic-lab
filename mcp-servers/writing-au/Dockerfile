@@ -11,5 +11,5 @@ RUN pip install --no-cache-dir .
 # AgentCore expects the MCP server on 0.0.0.0:8000/mcp.
 EXPOSE 8000
 
-# Serve streamable-HTTP, stateless, on /mcp (see australian_writing.server.main).
-CMD ["python", "-m", "australian_writing.server", "--http"]
+# Serve streamable-HTTP, stateless, on /mcp (see writing_au.server.main).
+CMD ["python", "-m", "writing_au.server", "--http"]

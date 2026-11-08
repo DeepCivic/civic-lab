@@ -1,4 +1,4 @@
-from australian_writing.spelling import check_spelling
+from writing_au.spelling import check_spelling
 
 
 def _words(result):

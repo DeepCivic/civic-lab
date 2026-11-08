@@ -209,7 +209,7 @@ def default_index_path() -> Path:
         base = Path(os.getenv("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
     else:
         base = Path(os.getenv("XDG_DATA_HOME") or Path.home() / ".local" / "share")
-    return base / "abr-mcp" / "abr.sqlite"
+    return base / "abr-au" / "abr.sqlite"
 
 
 def fts5_available() -> bool:
@@ -409,7 +409,7 @@ def build_index(
             "index_format": INDEX_FORMAT,
             "bulk_extract_schema_version": BULK_EXTRACT_SCHEMA_VERSION,
             "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "built_by": f"abr-mcp {__version__}",
+            "built_by": f"abr-au {__version__}",
             "record_count": str(report.record_count),
             "name_count": str(report.name_count),
             "duplicates_resolved": str(report.duplicates_resolved),
@@ -479,7 +479,7 @@ class LocalIndex:
     def _connect(self) -> sqlite3.Connection:
         if not self.path.is_file():
             raise IndexUnavailable(f"No ABR index at {self.path}. Build one with the build_index tool "
-                                   "or `abr-mcp update-index`.")
+                                   "or `abr-au update-index`.")
         con = sqlite3.connect(f"{self.path.resolve().as_uri()}?mode=ro", uri=True)
         con.row_factory = sqlite3.Row
         return con

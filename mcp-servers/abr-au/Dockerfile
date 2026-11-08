@@ -6,7 +6,7 @@
 # Multi-arch: `docker buildx build --platform linux/amd64,linux/arm64 .`
 FROM python:3.15-slim
 
-LABEL io.modelcontextprotocol.server.name="io.github.DeepCivic/abr-mcp" \
+LABEL io.modelcontextprotocol.server.name="io.github.DeepCivic/abr-au" \
       org.opencontainers.image.source="https://github.com/DeepCivic/civic-lab" \
       org.opencontainers.image.description="Unofficial MCP client for ABN Lookup data; not affiliated with or endorsed by the ABR" \
       org.opencontainers.image.licenses="Apache-2.0"
@@ -28,5 +28,5 @@ VOLUME ["/data"]
 USER abr
 EXPOSE 8000
 
-ENTRYPOINT ["abr-mcp"]
+ENTRYPOINT ["abr-au"]
 CMD ["serve"]

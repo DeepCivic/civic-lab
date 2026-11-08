@@ -9,9 +9,9 @@ import os
 
 import pytest
 
-from abr_mcp.index import LocalIndex
-from abr_mcp.service import AbrService
-from abr_mcp.web import AbrWebClient, WebError
+from abr_au.index import LocalIndex
+from abr_au.service import AbrService
+from abr_au.web import AbrWebClient, WebError
 
 pytestmark = [
     pytest.mark.live,

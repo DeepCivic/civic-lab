@@ -1,7 +1,7 @@
 """ABR MCP server: Australian Business Register (ABN Lookup) data over MCP.
 
-Run with:  python -m abr_mcp.server          (stdio)
-           python -m abr_mcp.server --http   (streamable-HTTP, stateless, /mcp)
+Run with:  python -m abr_au.server          (stdio)
+           python -m abr_au.server --http   (streamable-HTTP, stateless, /mcp)
 """
 
 from __future__ import annotations
@@ -27,12 +27,12 @@ except ImportError:  # mcp 1.x
 
     _MCP_V2 = False
 
-from abr_mcp import jobs as _jobs
-from abr_mcp.identifiers import validate_abn as _validate_abn
-from abr_mcp.identifiers import validate_acn as _validate_acn
-from abr_mcp.index import IndexScope, IndexUnavailable
-from abr_mcp.service import AbrService
-from abr_mcp.web import WebError
+from abr_au import jobs as _jobs
+from abr_au.identifiers import validate_abn as _validate_abn
+from abr_au.identifiers import validate_acn as _validate_acn
+from abr_au.index import IndexScope, IndexUnavailable
+from abr_au.service import AbrService
+from abr_au.web import WebError
 
 INSTRUCTIONS = """\
 Australian Business Register (ABN Lookup) data, via an unofficial client that
@@ -85,7 +85,7 @@ def anticipated(fn: F) -> F:
             raise ToolError(str(exc)) from exc
         except sqlite3.DatabaseError as exc:
             raise ToolError(f"local ABR index error ({exc}); rebuild it with the build_index tool "
-                            "or `abr-mcp update-index`") from exc
+                            "or `abr-au update-index`") from exc
 
     return wrapper  # type: ignore[return-value]
 

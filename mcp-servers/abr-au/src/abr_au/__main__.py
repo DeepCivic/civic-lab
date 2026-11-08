@@ -1,4 +1,4 @@
-"""`python -m abr_mcp` runs the CLI (serve by default)."""
+"""`python -m abr_au` runs the CLI (serve by default)."""
 
 from .cli import main
 

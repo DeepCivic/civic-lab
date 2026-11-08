@@ -1,16 +1,16 @@
-"""abr-mcp: serve the ABR MCP server, and optionally build a local index.
+"""abr-au: serve the ABR MCP server, and optionally build a local index.
 
-The index is optional. Without it, abr-mcp validates ABNs/ACNs offline and looks records up
+The index is optional. Without it, abr-au validates ABNs/ACNs offline and looks records up
 through the live ABN Lookup web services (set ABR_GUID).
 
-  abr-mcp                     serve over stdio (what MCP clients launch)
-  abr-mcp serve --http        serve streamable-HTTP on HOST:PORT/mcp
-  abr-mcp estimate [SCOPE]    estimate the size of an index before building it
-  abr-mcp update-index [SCOPE] download the latest bulk extract (~1 GB) and (re)build the
+  abr-au                     serve over stdio (what MCP clients launch)
+  abr-au serve --http        serve streamable-HTTP on HOST:PORT/mcp
+  abr-au estimate [SCOPE]    estimate the size of an index before building it
+  abr-au update-index [SCOPE] download the latest bulk extract (~1 GB) and (re)build the
                               index; does nothing if the index is already current
-  abr-mcp status              backend status as JSON
-  abr-mcp download DIR        just download the extract zips
-  abr-mcp build-index PATH... [SCOPE]  build from zips/XML you already have
+  abr-au status              backend status as JSON
+  abr-au download DIR        just download the extract zips
+  abr-au build-index PATH... [SCOPE]  build from zips/XML you already have
 
 SCOPE keeps part of the register: --active-only, --state VIC (repeatable),
 --name-types MN,LGL,BN. The full register is about 7 GB; active ABNs in one state
@@ -70,7 +70,7 @@ def _scope_args(p: argparse.ArgumentParser) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="abr-mcp", description=__doc__,
+    parser = argparse.ArgumentParser(prog="abr-au", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd")
     db_help = f"index path (default: $ABR_INDEX_PATH or {default_index_path()})"
@@ -120,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.cmd == "download":
             with _client() as client:
                 updater.fetch(client, updater.zip_resources(client), args.dest, _log)
-            _log(f"done. Next: abr-mcp build-index {args.dest}")
+            _log(f"done. Next: abr-au build-index {args.dest}")
             return 0
         if args.cmd == "build-index":
             rep = build_index(args.inputs, args.db, fts=not args.no_fts,

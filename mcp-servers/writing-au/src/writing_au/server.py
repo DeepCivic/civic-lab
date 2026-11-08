@@ -5,7 +5,7 @@ Exposes three deterministic content-quality tools over MCP (stdio):
   * check_grammar      - rule-based grammar / punctuation / usage
   * get_reading_level  - Australian school year reading level
 
-Run with:  python -m australian_writing.server
+Run with:  python -m writing_au.server
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from .grammar import check_grammar as _check_grammar
 from .readability import get_reading_level as _get_reading_level
 from .spelling import check_spelling as _check_spelling
 
-mcp = FastMCP("australian-writing")
+mcp = FastMCP("writing-au")
 
 
 @mcp.tool()

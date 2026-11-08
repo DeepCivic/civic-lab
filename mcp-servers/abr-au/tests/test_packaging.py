@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-import abr_mcp
+import abr_au
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -18,7 +18,7 @@ def _pyproject_version() -> str:
 def test_versions_agree():
     v = _pyproject_version()
     server = json.loads((ROOT / "server.json").read_text())
-    assert abr_mcp.__version__ == v == server["version"]
+    assert abr_au.__version__ == v == server["version"]
     for pkg in server["packages"]:
         assert pkg["registryType"] == "oci"  # image only: not published to PyPI
         assert pkg["identifier"].endswith(f":{v}")

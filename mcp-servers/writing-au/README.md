@@ -15,7 +15,7 @@ produces the same output, with no network calls or LLM inference.
 
 ## How it works
 
-- **Spelling** — the bundled [en_AU Hunspell dictionary](src/australian_writing/dictionaries/en_AU)
+- **Spelling** — the bundled [en_AU Hunspell dictionary](src/writing_au/dictionaries/en_AU)
   (~50k entries) is the source of truth, read with the pure-Python
   [`spylls`](https://github.com/zverok/spylls) engine. American spellings are
   labelled `americanism` (via a curated map + `-ize`/`-yze` suffix rules, each
@@ -34,7 +34,7 @@ produces the same output, with no network calls or LLM inference.
 ## Install
 
 ```bash
-cd mcp-servers/australian-writing-mcp
+cd mcp-servers/writing-au
 uv venv && source .venv/bin/activate
 uv pip install -e .
 ```
@@ -44,8 +44,8 @@ uv pip install -e .
 ## Run
 
 ```bash
-python -m australian_writing.server          # stdio (local client spawns it)
-python -m australian_writing.server --http   # streamable-HTTP on 0.0.0.0:8000/mcp
+python -m writing_au.server          # stdio (local client spawns it)
+python -m writing_au.server --http   # streamable-HTTP on 0.0.0.0:8000/mcp
 ```
 
 The `--http` mode (also enabled by `MCP_TRANSPORT=http`) serves stateless
@@ -58,10 +58,10 @@ Runtime (Docker image included).
 ```json
 {
   "mcpServers": {
-    "australian-writing": {
+    "writing-au": {
       "command": "python",
-      "args": ["-m", "australian_writing.server"],
-      "cwd": "/path/to/civic-lab/mcp-servers/australian-writing-mcp",
+      "args": ["-m", "writing_au.server"],
+      "cwd": "/path/to/civic-lab/mcp-servers/writing-au",
       "env": { "PYTHONPATH": "src" }
     }
   }
@@ -113,4 +113,4 @@ This MCP server is part of [civic-lab](../../) and is licensed under the
 Apache License 2.0. It bundles and ports third-party work under permissive
 terms — see [NOTICE](NOTICE) for the Harper attribution. The bundled en_AU
 dictionary is distributed under its original SCOWL-derived permissive terms;
-see [LICENSE](src/australian_writing/dictionaries/en_AU/LICENSE).
+see [LICENSE](src/writing_au/dictionaries/en_AU/LICENSE).

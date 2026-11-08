@@ -16,7 +16,7 @@ meets its protocol contract:
 Verify locally first:
 
 ```bash
-python -m australian_writing.server --http        # serves http://0.0.0.0:8000/mcp
+python -m writing_au.server --http        # serves http://0.0.0.0:8000/mcp
 ```
 
 ## Option A — starter toolkit (recommended)
@@ -26,14 +26,14 @@ IAM role, and registers the runtime.
 
 ```bash
 pip install bedrock-agentcore-starter-toolkit
-agentcore configure --entrypoint src/australian_writing/server.py --protocol MCP
+agentcore configure --entrypoint src/writing_au/server.py --protocol MCP
 agentcore launch
 ```
 
 ## Option B — manual (Docker + ECR + CLI)
 
 ```bash
-ACCOUNT=123456789012; REGION=ap-southeast-2; REPO=australian-writing-mcp
+ACCOUNT=123456789012; REGION=ap-southeast-2; REPO=writing-au
 
 # 1. Build ARM64 image and push to ECR
 aws ecr create-repository --repository-name $REPO --region $REGION
@@ -49,7 +49,7 @@ aws iam create-role --role-name AgentCoreAusWritingExec \
 
 # 3. Register the MCP runtime
 aws bedrock-agentcore-control create-agent-runtime \
-  --agent-runtime-name australian_writing \
+  --agent-runtime-name writing_au \
   --agent-runtime-artifact '{"containerConfiguration":{"containerUri":"'$ACCOUNT'.dkr.ecr.'$REGION'.amazonaws.com/'$REPO':latest"}}' \
   --network-configuration '{"networkMode":"PUBLIC"}' \
   --protocol-configuration '{"serverProtocol":"MCP"}' \

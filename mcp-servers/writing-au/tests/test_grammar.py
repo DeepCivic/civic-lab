@@ -1,4 +1,4 @@
-from australian_writing.grammar import check_grammar
+from writing_au.grammar import check_grammar
 
 
 def _rules(result):

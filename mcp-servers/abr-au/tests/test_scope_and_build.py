@@ -10,9 +10,9 @@ from conftest import ABN_CHARITY, ABN_CO, ABN_IND, ABN_TRUST, ALL_RECORDS, write
 from test_cli import fake_data_gov
 from test_service_and_web import jsonp, no_web, web_client
 
-from abr_mcp import cli, jobs, updater
-from abr_mcp.index import IndexScope, LocalIndex, build_index, estimate_index
-from abr_mcp.service import AbrService
+from abr_au import cli, jobs, updater
+from abr_au.index import IndexScope, LocalIndex, build_index, estimate_index
+from abr_au.service import AbrService
 
 
 def build(tmp_path: Path, scope: IndexScope, name: str = "abr.sqlite") -> Path:
@@ -142,7 +142,7 @@ def test_builds_disabled_over_http_unless_allowed(monkeypatch):
 
 
 def test_build_index_tool_plans_then_starts(tmp_path: Path, monkeypatch):
-    from abr_mcp import server
+    from abr_au import server
 
     src = write_full_extract(tmp_path / "extract", ALL_RECORDS)
     target = tmp_path / "idx" / "abr.sqlite"

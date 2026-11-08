@@ -43,7 +43,7 @@ DEFAULT_SEARCH_NAME_TYPES = ("MN", "LGL", "BN", "OTN", "DGR")
 # The web services agreement forbids suggesting Commonwealth endorsement or
 # affiliation, and provides the data "as is".
 DISCLAIMER = (
-    "abr-mcp is an unofficial, independent client. It is not affiliated with, endorsed "
+    "abr-au is an unofficial, independent client. It is not affiliated with, endorsed "
     "or approved by the Australian Business Register, the Australian Taxation Office or "
     "the Commonwealth of Australia. ABR data is provided by the Commonwealth 'as is', "
     "without warranty that it is correct, accurate or up to date."
@@ -67,6 +67,6 @@ WEB_SERVICES_TERMS = {
     "terms_url": "https://abr.business.gov.au/Tools/WebServices",
     "note": (
         "Live ABR data, used under the ABN Lookup web services agreement for the configured "
-        "GUID. Not cached or stored by abr-mcp."
+        "GUID. Not cached or stored by abr-au."
     ),
 }

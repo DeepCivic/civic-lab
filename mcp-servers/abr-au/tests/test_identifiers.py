@@ -1,6 +1,6 @@
 from conftest import ABN_CO, ACN_CO, make_abn
 
-from abr_mcp.identifiers import (
+from abr_au.identifiers import (
     abn_is_valid,
     acn_is_valid,
     format_abn,
@@ -9,7 +9,7 @@ from abr_mcp.identifiers import (
     validate_abn,
     validate_acn,
 )
-from abr_mcp.names import fts_query, name_key
+from abr_au.names import fts_query, name_key
 
 # Published worked examples (ATO ABN format guide; ASIC ACN check-digit guide).
 ATO_EXAMPLE_ABN = "51824753556"
