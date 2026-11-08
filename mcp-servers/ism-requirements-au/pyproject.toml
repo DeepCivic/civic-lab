@@ -23,6 +23,7 @@ dev = ["pytest>=7.0"]
 [project.urls]
 Homepage = "https://github.com/DeepCivic/civic-lab/tree/main/mcp-servers/ism-requirements-au"
 Repository = "https://github.com/DeepCivic/civic-lab"
+Documentation = "https://github.com/DeepCivic/civic-lab/tree/main/mcp-servers/ism-requirements-au/docs"
 Changelog = "https://github.com/DeepCivic/civic-lab/blob/main/mcp-servers/ism-requirements-au/CHANGELOG.md"
 
 [project.scripts]

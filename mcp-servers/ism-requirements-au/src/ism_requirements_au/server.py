@@ -177,7 +177,8 @@ def interrogate(id: Annotated[str, Field(description="A finding id (F-xxxxxxxx) 
     guidance (anchored, attributed quotations), mapping fidelity and what would settle it."""
     k = _load()
     key = id.strip()
-    if key.startswith("F-"):
+    if key.upper().startswith("F-"):
+        key = "F-" + key[2:].lower()
         f = _rv.find_finding(key)
         if f is None:
             raise ValueError("unknown finding id; finding ids last for the life of this server process. Run review_project first.")
@@ -215,9 +216,9 @@ def interrogate(id: Annotated[str, Field(description="A finding id (F-xxxxxxxx) 
     o = k.obligation(key)
     if o:
         return o
-    if key in k.essentials:
-        a = k.essentials[key]
-        return {"id": key, **a, "controls": [_control_brief(k.control(i)) for i in a["ism"] if k.has_control(i)]}
+    if up in k.essentials:
+        a = k.essentials[up]
+        return {"id": up, **a, "controls": [_control_brief(k.control(i)) for i in a["ism"] if k.has_control(i)]}
     raise ValueError(f"nothing found for {id!r}; try search_controls")
 
 
@@ -264,10 +265,11 @@ def get_essentials_action(id: Annotated[str | None, Field(description="e.g. IT.I
     """ASD Essentials (enterprise IT) actions: principle, action text, domains and the ISM controls each is cross-referenced to."""
     k = _load()
     if id:
-        a = k.essentials.get(id.strip())
+        aid = id.strip().upper()
+        a = k.essentials.get(aid)
         if not a:
             raise ValueError(f"unknown Essentials action {id!r}")
-        return {"id": id.strip(), **a, "controls": [_control_brief(k.control(i)) for i in a["ism"] if k.has_control(i)]}
+        return {"id": aid, **a, "controls": [_control_brief(k.control(i)) for i in a["ism"] if k.has_control(i)]}
     if domain:
         return [{"id": i, "action": a["action"][:140], "controls": len(a["ism"])} for i, a in k.essentials.items() if domain.lower() in " ".join(a["domains"]).lower()]
     counts: dict[str, int] = {}
@@ -336,7 +338,9 @@ def track_plan(classification: Classification = "PROTECTED", e8_target: Literal[
 def track_entry(control_id: str, status: Literal["implemented", "partial", "planned", "not_applicable", "risk_accepted"],
                 mechanism_kind: Literal["ci", "iac", "code", "config", "document", "process", "platform", "inherited"] = "process", mechanism_ref: str = "",
                 evidence: Annotated[list[str] | None, Field(description="Repository paths or URLs that evidence the control")] = None,
-                fidelity: Literal["direct", "partial", "supporting"] = "supporting", phase: str | None = None,
+                fidelity: Literal["direct", "partial", "supporting"] = "supporting",
+                phase: Annotated[Literal["define", "select", "implement", "assess", "authorise", "monitor"] | None,
+                                 Field(description="Lifecycle step; defaults to the phase of the control's first rule")] = None,
                 responsibility: str | None = None, source: str | None = None, note: str | None = None) -> dict:
     """A validated manifest entry for one control to append under 'controls:'. Warns if 'direct' has no mechanism or 'implemented' has no evidence."""
     return _tr.entry(_load(), control_id, status, mechanism_kind, mechanism_ref, evidence, fidelity, phase, responsibility, source, note)
@@ -359,7 +363,8 @@ def track_impact(manifest_path: Manifest = None, manifest_yaml: ManifestYaml = N
 @mcp.tool()
 @anticipated
 def track_ci() -> dict:
-    """A GitHub Actions workflow that runs 'ism-requirements-au verify' on the manifest. Returns content; the agent writes the file."""
+    """A GitHub Actions workflow that runs 'ism-requirements-au verify' on the manifest (fetched from this repository with uvx; it is not on PyPI).
+    Returns content; the agent writes the file."""
     return _tr.ci_workflow()
 
 

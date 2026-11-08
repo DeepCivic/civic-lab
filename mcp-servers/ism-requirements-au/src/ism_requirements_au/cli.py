@@ -40,7 +40,13 @@ def main(argv: list[str] | None = None) -> None:
     vf.add_argument("--json", action="store_true")
     sub.add_parser("status")
     a = ap.parse_args(argv)
+    try:
+        _run(a)
+    except (ValueError, OSError) as exc:  # bad input: a message and exit 2, not a traceback (exit 1 is reserved for findings)
+        ap.error(str(exc))
 
+
+def _run(a: argparse.Namespace) -> None:
     if a.cmd in (None, "serve"):
         if getattr(a, "root", None):
             os.environ["ISM_REQUIREMENTS_AU_ROOTS"] = os.pathsep.join(str(Path(r).resolve()) for r in a.root)

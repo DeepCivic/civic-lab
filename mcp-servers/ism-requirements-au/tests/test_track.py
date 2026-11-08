@@ -129,3 +129,35 @@ def test_tracking_tools_over_mcp(clean_repo, tmp_path):
         server.track_gaps(project=str(tmp_path / "nowhere"))
     with pytest.raises(ToolError):
         server.track_gaps(manifest_yaml="- not a mapping")
+
+
+def test_malformed_manifest_is_an_error_not_a_crash(clean_repo, tmp_path):
+    import shutil
+
+    proj = tmp_path / "p"
+    shutil.copytree(clean_repo, proj)
+    (proj / ".ism").mkdir()
+    (proj / ".ism/controls.yaml").write_text("ism_release: '2026.09'\nscope: {classification: PROTECTED}\ncontrols:\n  - ISM-0041\n", encoding="utf-8")
+    r = T.verify(K.load(), proj)
+    assert not r["ok"] and "controls[0] must be a mapping" in r["errors"][0]
+    for tool in (server.track_gaps, server.track_impact, server.draft_ssp_annex):
+        with pytest.raises(ToolError):
+            tool(project=str(proj))
+    with pytest.raises(ToolError):
+        server.track_gaps(manifest_yaml="scope: PROTECTED\ncontrols: []\n")
+
+
+def test_phase_is_validated(clean_repo, tmp_path):
+    import shutil
+
+    with pytest.raises(ValueError):
+        T.entry(K.load(), "ISM-2154", "planned", phase="banana")
+    proj = tmp_path / "p"
+    shutil.copytree(clean_repo, proj)
+    manifest_for(proj, [good_entry(phase="banana")])
+    assert any("phase must be one of" in e for e in T.verify(K.load(), proj)["errors"])
+
+
+def test_ci_workflow_does_not_assume_pypi():
+    run = next(ln for ln in server.track_ci()["yaml"].splitlines() if "verify" in ln and "run:" in ln)
+    assert "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/ism-requirements-au" in run

@@ -77,3 +77,11 @@ def test_http_requires_roots(monkeypatch):
     monkeypatch.delenv(server.ROOTS_ENV, raising=False)
     with pytest.raises(SystemExit):
         server.main(http=True)
+
+
+def test_ids_are_case_insensitive():
+    assert server.interrogate("r-pinned-deps")["controls"] == ["ISM-2154"]
+    assert server.interrogate("pre-irp")["requirement"][0]["control"] == "ISM-0043"
+    assert server.interrogate("pspf-14-strategy")["requirement_ref"] == "0098"
+    ea = next(i for i, a in server._load().essentials.items() if a["ism"])
+    assert server.interrogate(ea.lower())["id"] == ea and server.get_essentials_action(ea.lower())["id"] == ea

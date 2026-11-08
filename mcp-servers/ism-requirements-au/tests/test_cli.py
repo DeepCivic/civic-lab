@@ -36,3 +36,9 @@ def test_verify_cli(clean_repo, tmp_path, capsys):
 def test_status(capsys):
     cli.main(["status"])
     assert json.loads(capsys.readouterr().out)["ism_release"] == "2026.09"
+
+
+def test_bad_input_is_a_usage_error_not_a_traceback(bad_repo, capsys):
+    with pytest.raises(SystemExit) as e:
+        cli.main(["review", str(bad_repo), "--entity-type", "other", "--classification", "RESTRICTED"])
+    assert e.value.code == 2 and "unknown classification" in capsys.readouterr().err

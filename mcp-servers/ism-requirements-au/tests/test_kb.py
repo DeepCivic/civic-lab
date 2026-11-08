@@ -52,6 +52,8 @@ def test_applicability_and_e8_mandate():
     if e8:
         assert not kb.applies(e8, "P") and kb.applies(e8, "P", "ML3")
     assert K.classification_tag("OFFICIAL: Sensitive") == "OS" and K.classification_tag("protected") == "P"
+    # Unmarked OFFICIAL is non-classified; it must not pick up the OFFICIAL: Sensitive baseline.
+    assert K.classification_tag("OFFICIAL") == "NC" and K.classification_tag("official sensitive") == "OS"
 
 
 def test_quotations_are_anchored_and_attributed():

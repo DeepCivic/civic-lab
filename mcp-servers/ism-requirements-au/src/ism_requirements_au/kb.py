@@ -8,8 +8,9 @@ from functools import lru_cache
 from importlib import resources
 
 CLASSIFICATIONS = {
-    "NC": ("non-classified", "non classified", "unclassified", "nc"),
-    "OS": ("official: sensitive", "official sensitive", "official-sensitive", "official", "os"),
+    # OFFICIAL (unmarked) information is non-classified; OFFICIAL: Sensitive has its own baseline.
+    "NC": ("non-classified", "non classified", "unclassified", "official", "nc"),
+    "OS": ("official: sensitive", "official sensitive", "official-sensitive", "os"),
     "P": ("protected", "p"),
     "S": ("secret", "s"),
     "TS": ("top secret", "top-secret", "ts"),
@@ -23,7 +24,7 @@ def classification_tag(value: str) -> str:
     for tag, names in CLASSIFICATIONS.items():
         if v in names:
             return tag
-    raise ValueError(f"unknown classification {value!r}; use one of: NON-CLASSIFIED, OFFICIAL: Sensitive, PROTECTED, SECRET, TOP SECRET")
+    raise ValueError(f"unknown classification {value!r}; use one of: NON-CLASSIFIED (or OFFICIAL), OFFICIAL: Sensitive, PROTECTED, SECRET, TOP SECRET")
 
 
 class KB:
@@ -78,9 +79,9 @@ class KB:
                 return s["scope"]
         return "always"
 
-    # ---- authored layers
+    # ---- authored layers (ids are upper case; lookups accept any case)
     def entry(self, eid: str) -> dict | None:
-        return self._rules.get(eid)
+        return self._rules.get(eid.upper())
 
     @property
     def rules(self) -> list[dict]:
@@ -95,14 +96,14 @@ class KB:
         return self.data["preconditions"]
 
     def precondition(self, pid: str) -> dict | None:
-        return self._pre.get(pid)
+        return self._pre.get(pid.upper())
 
     @property
     def obligations(self) -> list[dict]:
         return self.data["obligations"]
 
     def obligation(self, oid: str) -> dict | None:
-        return self._obl.get(oid)
+        return self._obl.get(oid.upper())
 
     @property
     def essentials(self) -> dict:

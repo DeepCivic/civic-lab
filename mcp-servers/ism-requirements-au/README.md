@@ -35,35 +35,108 @@ Findings come at four levels:
 | `plan` | In scope but it belongs to a later step of the six (define, select, implement, assess, authorise, monitor). |
 | `info` | Recorded for completeness, for example a document found by file name that this server cannot read. |
 
-## Install and run
+## What a review looks like
 
-Docker (the supported route; the image mounts the project read-only at `/work`):
+Abridged output for the deliberately bad project the tests build (`tests/conftest.py`), reviewed for a non-corporate
+Commonwealth entity at PROTECTED in the implement step:
 
-```sh
-docker run -i --rm -v "$PWD":/work:ro ghcr.io/deepcivic/ism-requirements-au            # stdio MCP server
-docker run --rm -v "$PWD":/work:ro ghcr.io/deepcivic/ism-requirements-au \
-    review /work --entity-type non_corporate_commonwealth --fail-on blocker             # CLI review, e.g. in CI
-docker run --rm -v "$PWD":/work:ro ghcr.io/deepcivic/ism-requirements-au verify /work   # check .ism/controls.yaml
+```text
+ISM 2026.09 review of /work (PROTECTED, phase implement)
+levels: blocker=4, gap=32, plan=7, info=1
+[BLOCKER] PRE-IRP                (repository)
+    Cyber security incident response plan not found: ... it may be held elsewhere.
+[BLOCKER] R-MFA                  infra/main.tf:13
+    Multi-factor authentication is used: Multi-factor authentication is switched off in configuration.
+[GAP    ] R-CRED-SHORT-LIVED     app/settings.py:3
+    Workloads use short-lived, dynamically issued credentials: A long-lived cloud access key is present in the repository.
+[GAP    ] R-TLS-VERSION          app/settings.py:4
+    Only the latest TLS version is used: A TLS or SSL version below TLS 1.2 is permitted or selected.
+[GAP    ] R-AI-AGENT-LEAST-TOOLS agent.py:1
+    Agents are limited to the minimum tools and permissions: An agent is given broad execution capability or run without an approval step.
+[PLAN   ] PRE-ATO                (repository)
+    Authorisation to operate not found: ... (expected only once the earlier steps are complete).
+[PLAN   ] H-ALERTS-WATCHED       (repository)
+    Alerts from security tooling are actually watched: Tooling that generates alerts no one reads is a recurring assessment finding.
+[INFO   ] PRE-SSP                (repository)
+    System security plan found by file name: docs/system-security-plan.pdf ... is a format this server does not read. Confirm its content.
 ```
 
-From source (Python 3.15):
+`R-MFA` is a blocker, not a gap, because multi-factor authentication is an Essential Eight Maturity Level Two strategy and
+the PSPF makes Maturity Level Two mandatory for this entity. Over MCP, `interrogate` on any finding id gives the verbatim
+control, the evidence, guidance and what would settle it.
 
-```sh
-uv pip install -e ".[dev]" && pytest
-ism-requirements-au                        # serve over stdio
-ism-requirements-au serve --http --root /srv/repos
-```
+## Quick start
 
-MCP client configuration:
+You need [uv](https://docs.astral.sh/uv/). `uvx` fetches and runs the server; there is no install step.
+
+**Claude Desktop / Claude Code** (`mcpServers`):
 
 ```json
-{ "mcpServers": { "ism-requirements-au": {
-    "command": "docker",
-    "args": ["run", "-i", "--rm", "-v", "/path/to/project:/work:ro", "ghcr.io/deepcivic/ism-requirements-au"] } } }
+{
+  "mcpServers": {
+    "ism": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/ism-requirements-au",
+               "ism-requirements-au"]
+    }
+  }
+}
 ```
 
-The server reads only the directories named by `ISM_REQUIREMENTS_AU_ROOTS` (`/work` in the image). HTTP mode refuses to
-start without a root.
+**VS Code** (`.vscode/mcp.json`): the same `command` and `args` under `"servers"`.
+
+Then ask your assistant something like:
+
+> We are a non-corporate Commonwealth entity building a PROTECTED system. Review /path/to/my-project for what would stop
+> it being authorised under the ISM.
+
+Or use the `ism_requirements` prompt, which runs the whole workflow.
+
+## Docker
+
+The image runs the same server. Mount the project at `/work` (read-only is enough) and ask for a review of `/work`. The
+server can read nothing else.
+
+```json
+{
+  "mcpServers": {
+    "ism": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-v", "/path/to/my-project:/work:ro", "ghcr.io/deepcivic/ism-requirements-au"]
+    }
+  }
+}
+```
+
+```sh
+docker run --rm -v "$PWD":/work:ro ghcr.io/deepcivic/ism-requirements-au \
+    review /work --entity-type non_corporate_commonwealth --fail-on blocker
+docker run --rm -v "$PWD":/work:ro ghcr.io/deepcivic/ism-requirements-au verify /work
+```
+
+The image is published when a release is tagged. Until then, build it locally with
+`docker build -t ism-requirements-au .`.
+
+## Configuration
+
+The server is isolated by default. It reads only the paths you give it, makes no network calls and writes nothing.
+
+| Setting | Effect |
+| --- | --- |
+| `ISM_REQUIREMENTS_AU_ROOTS` (path list) or `serve --root DIR` | Only these directories may be read (`/work` in the image). Required for HTTP mode. |
+| `serve --http [--host H --port P]` | Streamable HTTP at `/mcp`. `HOST` and `PORT` set the defaults. Refuses to start without roots, because it reads files for remote clients. |
+
+## Command line and CI
+
+```sh
+ism-requirements-au review path/to/repo --entity-type non_corporate_commonwealth --classification PROTECTED
+ism-requirements-au review path/to/repo --entity-type other --fail-on gap --json   # exit 1 on any gap or blocker
+ism-requirements-au verify path/to/repo --strict                                    # check .ism/controls.yaml
+ism-requirements-au status
+```
+
+`review` exits 1 when a finding at or above `--fail-on` (default `blocker`) is present, and `verify` exits 1 on any error.
+Both exit 2 on bad input, such as an unknown classification. From source (Python 3.15): `uv pip install -e ".[dev]" && pytest`.
 
 ## Tools
 
@@ -123,6 +196,28 @@ Responsibility and Implementation Source come only from the manifest.
 A finding on a line containing `ism-review: ignore` is suppressed, and a file containing `ism-review: ignore-file` is not
 read. Use them with a reason, for example for a test fixture.
 
+## What you can rely on
+
+**What it is good at:** finding early what an assessor would find late: secrets and long-lived keys in the repository,
+switched-off MFA, weak TLS, open ingress, unpinned or untrusted dependencies, over-privileged AI agents, and missing
+authorisation documents. It ties each one to the verbatim ISM control, the Essential Eight level and the PSPF obligation
+behind it, and says how firmly the repository evidences it (`fidelity` and `confidence`).
+
+**What it cannot do:**
+
+- **Assess.** Only an IRAP assessor sets an assessment outcome; a blocker means "will not get through on this evidence",
+  not "failed".
+- **See outside the repository.** Platform settings, tenant policies, tickets and documents held elsewhere are invisible,
+  so absence findings mean "not found here".
+- **Read PDFs or Office files.** It finds documents such as a system security plan by file name and lists them as unread
+  so your assistant can read them.
+- **Cover every control.** Of the controls that apply, it has rules for the ones a repository can evidence. Physical,
+  personnel and organisation-level controls are counted by `scope_system`, not reviewed.
+- **Know a later ISM release.** It carries ISM v2026.09.4 only; `track_impact` flags manifest entries whose control has
+  since changed.
+
+The knowledge base, its sources and its known gaps are described in [RESEARCH.md](RESEARCH.md).
+
 ## What it covers
 
 29 rules and 12 assessment-gap heuristics over software development, web and AI application development, credentials,
@@ -130,6 +225,12 @@ identity, TLS, network exposure, logging and patching, plus 8 authorisation prec
 for each rule, its controls, fidelity and detectors, and [RESEARCH.md](RESEARCH.md) for how the knowledge base was made and
 its limits. Hardening and security-monitoring controls are in the control scope and carry Essential Eight levels and
 Essentials actions; rules for them grow with later releases.
+
+## Documentation
+
+- [Rules](docs/rules.md): each rule and heuristic, its controls, fidelity, phase and detectors.
+- [RESEARCH.md](RESEARCH.md): how the knowledge base was made, its sources and its known limits.
+- [CHANGELOG](CHANGELOG.md).
 
 ## Licence
 

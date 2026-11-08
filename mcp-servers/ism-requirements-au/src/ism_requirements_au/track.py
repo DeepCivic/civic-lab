@@ -31,9 +31,15 @@ def parse(text: str) -> dict:
         raise ValueError(f"manifest is not valid YAML: {exc}") from exc
     if not isinstance(data, dict):
         raise ValueError("manifest must be a YAML mapping with 'ism_release', 'scope' and 'controls'")
-    data.setdefault("controls", [])
+    if data.get("controls") is None:
+        data["controls"] = []
     if not isinstance(data["controls"], list):
         raise ValueError("'controls' must be a list")
+    for i, c in enumerate(data["controls"]):
+        if not isinstance(c, dict):
+            raise ValueError(f"controls[{i}] must be a mapping with at least 'id' (got {c!r:.60}); track_entry returns a valid entry")
+    if data.get("scope") is not None and not isinstance(data["scope"], dict):
+        raise ValueError("'scope' must be a mapping, e.g. {classification: PROTECTED, e8_target: ML2}")
     return data
 
 
@@ -87,6 +93,8 @@ def entry(kb: KB, control_id: str, status: str, mechanism_kind: str = "process",
         raise ValueError(f"responsibility must be one of {RESPONSIBILITY}")
     if source and source not in SOURCE:
         raise ValueError(f"source must be one of {SOURCE}")
+    if phase and phase not in kb.phases:
+        raise ValueError(f"phase must be one of {kb.phases}")
     problems = []
     if fidelity == "direct" and not mechanism_ref:
         problems.append("a 'direct' mapping needs a mechanism reference (a CI job, IaC resource, code path or config file) that enforces the control")
@@ -105,7 +113,7 @@ def entry(kb: KB, control_id: str, status: str, mechanism_kind: str = "process",
 
 
 def gaps(kb: KB, manifest: dict, classification: str | None = None, e8_target: str | None = None, limit: int = 40) -> dict:
-    scope = manifest.get("scope", {})
+    scope = manifest.get("scope") or {}
     cl = classification or scope.get("classification")
     if not cl:
         raise ValueError("classification is not in the manifest scope; pass classification")
@@ -172,12 +180,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - name: Verify the ISM control manifest
-        run: uvx ism-requirements-au verify --manifest .ism/controls.yaml
+        run: uvx --from "git+https://github.com/DeepCivic/civic-lab#subdirectory=mcp-servers/ism-requirements-au" ism-requirements-au verify --manifest .ism/controls.yaml
 """
     return {"path": ".github/workflows/ism-controls.yml", "yaml": wf,
             "notes": ["Add --strict to fail when an applicable rule-linked control has no manifest entry.",
-                      "Pin the tool version (uvx ism-requirements-au==X.Y.Z) once you adopt it, so the check does not change under you.",
-                      "If the package is not published to PyPI, use: docker run --rm -v \"$PWD\":/work:ro ghcr.io/deepcivic/ism-requirements-au verify /work"]}
+                      "Pin the tool version once you adopt it (git+https://github.com/DeepCivic/civic-lab@ism-requirements-au-vX.Y.Z#subdirectory=...), "
+                      "so the check does not change under you.",
+                      "The package is not on PyPI. Once an image is released, this also works: "
+                      "docker run --rm -v \"$PWD\":/work:ro ghcr.io/deepcivic/ism-requirements-au verify /work"]}
 
 
 _MARKER = re.compile(r"\bism:\s*((?:ISM-\d{4}\s*,?\s*)+)", re.I)
@@ -222,6 +232,8 @@ def verify(kb: KB, root: Path, manifest_path: Path | None = None, strict: bool =
             errors.append(f"{where}: status must be one of {STATUSES}")
         if c.get("fidelity") not in FIDELITIES:
             errors.append(f"{where}: fidelity must be one of {FIDELITIES}")
+        if c.get("phase") is not None and c["phase"] not in kb.phases:
+            errors.append(f"{where}: phase must be one of {kb.phases}")
         mech = c.get("mechanism") or {}
         if mech.get("kind") is not None and mech["kind"] not in MECHANISMS:
             errors.append(f"{where}: mechanism.kind must be one of {MECHANISMS}")
