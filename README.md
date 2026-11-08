@@ -29,6 +29,7 @@ Australian Government and go-to-market contexts:
 | --- | --- |
 | [abr-mcp](mcp-servers/abr-mcp/) | Australian Business Register (ABN Lookup) data: offline ABN/ACN validation, a local bulk-extract index, and optional live ABR web services. |
 | [australian-writing-mcp](mcp-servers/australian-writing-mcp/) | Deterministic Australian English writing checks: spelling, grammar, and reading level. |
+| [ism-requirements-au](mcp-servers/ism-requirements-au/) | Derive and track the Australian Government ISM, Essentials and PSPF requirements for a system: which obligations and controls apply, what in a repository would stop authorisation, and deterministic control tracking with an SSP annex export. Verified quotations; offline and read-only. |
 
 Each server is an independent Python package (its own `pyproject.toml`),
 released on its own, in the same way as
@@ -66,7 +67,8 @@ civic-lab/
 │       └── SKILL.md
 └── mcp-servers/
     ├── abr-mcp/                    # MCP server: ABN Lookup / ABR data
-    └── australian-writing-mcp/     # MCP server: AU English writing checks
+    ├── australian-writing-mcp/     # MCP server: AU English writing checks
+    └── ism-requirements-au/        # MCP server: ISM requirements, authorisation readiness, control tracking
 ```
 
 ## Licence

@@ -1,0 +1,35 @@
+ism-requirements-au
+Copyright DeepCivic contributors. Licensed under the Apache License 2.0.
+
+ism-requirements-au is an independent tool. It is not affiliated with, endorsed or approved by the Australian
+Signals Directorate, the Department of Home Affairs or the Commonwealth of Australia. It is not an IRAP assessment
+and does not provide legal advice.
+
+The bundled knowledge base (src/ism_requirements_au/data/kb.json) contains the text of, quotations from, or identifiers
+taken from the following, used under their terms:
+
+* Australian Government Information Security Manual (September 2026), as the OSCAL catalog and baseline profiles
+  v2026.09.4 published by the Australian Signals Directorate (https://github.com/AustralianCyberSecurityCentre/ism-oscal):
+  control statements, revisions, update months, classification applicability and Essential Eight maturity-level tags,
+  reproduced verbatim. (c) Commonwealth of Australia (Australian Signals Directorate), Creative Commons Attribution 4.0
+  International.
+
+* ASD Essentials (enterprise IT) actions, principles and domains, and the action-to-control cross-references derived
+  from ASD's assessment workbook; ASD guidance publications and the IRAP and Essential Eight material, from which
+  short anchored quotations are taken. (c) Commonwealth of Australia (Australian Signals Directorate), Creative Commons
+  Attribution 4.0 International.
+
+* Protective Security Policy Framework Release 2026 and Direction 002-2026 (Department of Home Affairs): obligations are
+  paraphrased, with a small number of short verbatim quotations. Creative Commons Attribution 3.0 Australia.
+
+* NIST publications (for example SP 800-218 and SP 800-161): short quotations. Works of the United States Government,
+  not subject to copyright in the United States.
+
+* OWASP (ASVS, Top 10, Proactive Controls, GenAI Security Project): identified by name and link only. OWASP material is
+  CC BY-SA 4.0 and is not reproduced here.
+
+* AEMO AESCSF v2: practice identifiers appear in control cross-references only. The licence is not stated, so no text
+  is included.
+
+Every quotation records the sha256 of its source passage and its start and end offsets, and the build that produces the
+knowledge base fails if a quotation does not match its source.
