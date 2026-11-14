@@ -166,3 +166,45 @@ def test_get_record_returns_everything_and_explains_a_bad_id(root):
     assert len(rec["record"]["aliases"]) == 2 and rec["dataset_version"].startswith("dfat:")
     with pytest.raises(ValueError, match="only stable within a dataset version"):
         s.record("dfat", "nope")
+
+
+def test_an_identifier_matches_only_as_a_whole_number(root):
+    # The record's additional information holds "Passport no: Freedonia number FX1234567 (expires 2030)".
+    for fragment in ("FX12345", "1234567", "X123456", "234567FX"):
+        assert screen(root, "dfat", identifier=fragment)["dfat"]["status"] == "no_match", fragment
+    for whole in ("FX1234567", "fx-123-4567", "FX 1234567"):
+        assert top(screen(root, "dfat", identifier=whole))["confidence"] == "high", whole
+
+
+def test_imo_and_abn_are_compared_as_digits(root, tmp_path):
+    from conftest import ABF_ROWS, DFAT_ROWS, abf_payload, dfat_row, make_xlsx
+    from sanctions_au import abf, dfat
+    r = tmp_path / "fmt"
+    x = make_xlsx(tmp_path / "fmt.xlsx", [*DFAT_ROWS[:-2], dfat_row(3, "NORTHERN QUILL", "Vessel", **{"IMO Number": "IMO 9999991"})])
+    store.commit("dfat", x, dfat.parse(x)[0], {}, root=r)
+    j = tmp_path / "fmt.json"
+    j.write_bytes(abf_payload([{**ABF_ROWS[0], "abn": "11 000 000 000"}]))
+    store.commit("abf", j, abf.parse(j.read_bytes()), {}, root=r)
+    assert top(screen(r, "dfat", imo="9999991"))["confidence"] == "high"
+    assert top(screen(r, "abf", abn="11000000000"), "abf")["confidence"] == "high"
+    other = top(screen(r, "abf", name="Quillfeather Staffing", abn="99000000000"), "abf")
+    assert any("differs" in c for c in other["conflicts"])
+
+
+def test_one_invalid_subject_does_not_fail_the_batch(root):
+    out = Screener(root).screen_many([Subject(ref="a", name="Kellan Dresdorf"),
+                                      Subject(ref="b", name="Quillfeather Staffing", sanctioned_from="last year")])
+    assert out["results"][0]["overall"] == "potential_match"
+    assert out["results"][1]["overall"] == "invalid_input" and "sanctioned_from" in out["results"][1]["error"]
+    assert out["summary"] == {"subjects": 2, "potential_match": 1, "invalid_input": 1}
+
+
+def test_one_response_names_one_set_of_versions(root, files, monkeypatch):
+    from sanctions_au import dfat
+    s = Screener(root)
+    datasets = s.datasets()
+    before = datasets["dfat"].version
+    x, _ = files
+    store.commit("dfat", x, dfat.parse(x)[0][:-1], {}, root=root, at=store.now() + dt.timedelta(seconds=5), force=True)
+    result, env = s.screen(Subject(name="Kellan Dresdorf"), "all", None, datasets), s.envelope("all", store.now(), datasets)
+    assert result["dfat"]["dataset_version"] == env["dataset_versions"]["dfat"] == before

@@ -311,3 +311,21 @@ def test_tools_work_once_enabled(monkeypatch):
     assert T['get_relationships'](ACME)["relationships"][0]["relationshipType"]
     with pytest.raises(server.ToolError, match="invalid_format"):
         T['lei_lookup']("nope")
+
+
+def test_autocomplete_tolerates_a_suggestion_with_no_record():
+    items = [{"type": "autocompletions", "attributes": {"value": "ACME"}, "relationships": {"lei-records": {"data": None}}}]
+    assert api(**{"/autocompletions": (200, {"data": items})}).client.autocomplete("acme")["suggestions"] == [
+        {"lei": None, "value": "ACME"}]
+
+
+def test_list_issuers_pages_past_two_hundred():
+    def handler(request):
+        n, size = int(request.url.params["page[number]"]), int(request.url.params["page[size]"])
+        data = [{"type": "lei-issuers", "id": f"LOU{i:04d}", "attributes": {"name": f"LOU {i}"}}
+                for i in range((n - 1) * size, min(n * size, 450))]
+        return 200, {"meta": {"pagination": {"currentPage": n, "perPage": size, "total": 450, "lastPage": -(-450 // size)}},
+                     "data": data}
+    out = api(**{"/lei-issuers": handler}).client.issuers(limit=300)
+    assert out["count"] == 300 and out["total"] == 450 and out["truncated"] is True
+    assert len({i["id"] for i in out["issuers"]}) == 300

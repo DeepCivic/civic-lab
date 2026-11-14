@@ -38,7 +38,8 @@ Screening makes no network call, and nothing about a subject leaves this machine
   and its confidence. Confidence is a rule-based summary of how many checks agree, not a probability.
 - Read `status` per source: potential_match, no_match, insufficient_information (say what to add),
   not_applicable, or dataset_unavailable. 'overall' is 'incomplete' when any source could not be
-  screened in full, so never present it as a clear result.
+  screened in full, so never present it as a clear result. In a batch, 'invalid_input' means that subject
+  was not screened: report its error.
 - Always report dataset_versions and any warnings (stale data, the ABF's monthly update lag, pending
   review). A 'no match' on stale data is weak: say so.
 - Supply as much as you have: name, aliases, date of birth (year compared), country, address, passport
@@ -139,8 +140,8 @@ def screen_subject(
                       country=country, address=address, identifier=identifier, imo=imo, abn=abn, acn=acn,
                       sanctioned_from=sanctioned_from, sanctioned_to=sanctioned_to)
     s = screener()
-    now = store.now()
-    return {**s.screen(subject, sources, now), **s.envelope(sources, now)}
+    now, datasets = store.now(), s.datasets(sources)
+    return {**s.screen(subject, sources, now, datasets), **s.envelope(sources, now, datasets)}
 
 
 @screening_tool
@@ -153,8 +154,9 @@ def screen_batch(
 ) -> dict[str, Any]:
     """Screen up to 100 subjects in one call, for onboarding, supplier review or periodic rescreening.
 
-    Results come back in input order with a summary count per overall status. Dataset versions, warnings
-    and the disclaimer appear once for the whole batch.
+    Results come back in input order with a summary count per overall status. A subject with invalid input
+    (for example a badly formatted date) gets overall 'invalid_input' and an error, and the rest are still
+    screened. Dataset versions, warnings and the disclaimer appear once for the whole batch.
     """
     return screener().screen_many(subjects, sources)
 

@@ -69,3 +69,16 @@ def test_a_damaged_snapshot_is_reported_not_screened(tmp_path):
 
 def test_missing_dataset_is_none(tmp_path):
     assert store.load("abf", tmp_path) is None
+
+
+def test_refreshing_the_same_source_repairs_a_damaged_snapshot(tmp_path):
+    root = tmp_path / "d"
+    first = _commit(root, tmp_path, DFAT_ROWS, at=T0)
+    rec = next((root / "snapshots" / "dfat").iterdir()) / "records.jsonl"
+    rec.chmod(0o644)
+    rec.write_text("damaged\n")
+    with pytest.raises(DatasetError, match="integrity check"):
+        store.load("dfat", root)
+    again = _commit(root, tmp_path, DFAT_ROWS, at=T0)  # same file, same second
+    assert again.outcome == "new" and again.version != first.version
+    assert store.load("dfat", root).version == again.version

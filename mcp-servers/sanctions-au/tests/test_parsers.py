@@ -94,3 +94,28 @@ def test_abf_fetch_stops_if_the_page_no_longer_carries_a_digest():
     with httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="<html></html>"))) as client:
         with pytest.raises(DatasetError, match="request digest"):
             abf.fetch(client)
+
+
+def test_dfat_date_of_birth_typed_as_a_date_or_year_keeps_its_year(tmp_path):
+    rows = [dfat_row(1, "Serial Person", **{"Date of Birth": 25569}),  # 1970-01-01 as an Excel day number
+            dfat_row(2, "Year Person", **{"Date of Birth": 1971})]
+    recs, _ = dfat.parse(make_xlsx(tmp_path / "dob.xlsx", rows))
+    assert [r["date_of_birth"] for r in recs] == ["1970-01-01", "1971"]
+
+
+def test_xlsx_reports_an_unreadable_cell_as_a_layout_error(tmp_path):
+    path = make_xlsx(tmp_path / "bad.xlsx", DFAT_ROWS)
+    import zipfile
+    with zipfile.ZipFile(path) as z:
+        parts = {n: z.read(n) for n in z.namelist()}
+    parts["xl/worksheets/sheet1.xml"] = parts["xl/worksheets/sheet1.xml"].replace(b"<v>0</v>", b"<v>999999</v>", 1)
+    with zipfile.ZipFile(path, "w") as z:
+        for n, data in parts.items():
+            z.writestr(n, data)
+    with pytest.raises(XlsxError, match="unreadable value"):
+        read_first_sheet(path)
+
+
+def test_abf_tolerates_a_non_text_status():
+    recs = abf.parse(abf_payload([{**ABF_ROWS[0], "amountstatus": 0}]))
+    assert recs[0]["infringement_notice_status"] is None

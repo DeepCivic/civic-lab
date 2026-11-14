@@ -93,7 +93,8 @@ citizenship, a different ABN) lowers it one step and is listed in `conflicts`. W
 
 Each source returns one status: `potential_match`, `no_match`, `insufficient_information` (with what to add),
 `not_applicable` (vessels are not on the ABF register) or `dataset_unavailable`. `overall` is `incomplete`, never
-`no_match`, when any source could not be screened in full.
+`no_match`, when any source could not be screened in full. In `screen_batch`, a subject with invalid input gets
+`overall: invalid_input` and an `error`, and the other subjects are still screened.
 
 An abridged result:
 
@@ -111,8 +112,9 @@ An abridged result:
 
 - **DFAT.** One listing has a primary name and any number of aliases and original-script names; aliases are screened too.
   Date of birth is free text ("Approximately 1963", ranges, several dates), so **only the year is compared**. Passport
-  and other identifiers are free text inside `additional_information` and are matched as a substring, at least six
-  characters long.
+  and other identifiers are free text inside `additional_information`. An identifier of at least six characters
+  matches only as a whole number, ignoring spaces and punctuation inside it (`FX 123-4567` matches `FX1234567`), never as
+  part of a longer one. IMO numbers and ABNs are compared as digits only.
 - **ABF.** The register updates **monthly**: a sponsor sanctioned recently may not appear yet. A trailing `*` on a
   sponsor name means an Administrative Review Tribunal review is pending; it is returned as `pending_review`. The register has no
   record id, so ids are hashes of the published row and change when the ABF edits it. ABN is a field; ACN is not,

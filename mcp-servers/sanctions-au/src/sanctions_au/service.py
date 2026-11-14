@@ -16,7 +16,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from . import store
-from .match import (TIER_EXACT, Name, Query, alnum, best_by_record, evidence, make_name, norm, years)
+from .match import (TIER_EXACT, Name, Query, alnum, best_by_record, evidence, has_identifier, id_tokens, make_name,
+                    norm, years)
 
 Source = Literal["dfat", "abf"]
 SubjectType = Literal["any", "individual", "organisation", "vessel", "sponsor"]
@@ -109,8 +110,8 @@ class Screener:
                             names.append(n)
             idx = {"names": names, "by_id": {r["id"]: r for r in ds.records}}
             if ds.source == "dfat":
-                idx["alnum_info"] = {r["id"]: alnum(r["additional_information"]) for r in ds.records
-                                     if r["additional_information"]}
+                idx["info_tokens"] = {r["id"]: id_tokens(r["additional_information"]) for r in ds.records
+                                      if r["additional_information"]}
             self._index[ds.source] = idx
         return idx
 
@@ -140,8 +141,16 @@ class Screener:
 
     # -- screening ----------------------------------------------------------------------------
 
-    def screen(self, subject: Subject, sources: str = "all", at: dt.datetime | None = None) -> dict[str, Any]:
+    def datasets(self, sources: str = "all") -> dict[str, store.Dataset | None]:
+        """The current dataset of each source asked for, read once, so that every part of one response
+        (each subject's results and the envelope) describes the same versions even if a refresh lands
+        mid-call."""
+        return {s: self.dataset(s) for s in store.SOURCES if sources in ("all", s)}
+
+    def screen(self, subject: Subject, sources: str = "all", at: dt.datetime | None = None,
+               datasets: dict[str, store.Dataset | None] | None = None) -> dict[str, Any]:
         at = at or store.now()
+        datasets = self.datasets(sources) if datasets is None else datasets
         for label, value in (("sanctioned_from", subject.sanctioned_from), ("sanctioned_to", subject.sanctioned_to)):
             if value:
                 try:
@@ -151,7 +160,7 @@ class Screener:
         wanted = [s for s in store.SOURCES if sources in ("all", s)]
         result: dict[str, Any] = {"ref": subject.ref, "subject": subject.model_dump(exclude_none=True, exclude={"ref"})}
         for source in wanted:
-            ds = self.dataset(source)
+            ds = datasets.get(source)
             if ds is None:
                 result[source] = {"status": "dataset_unavailable",
                                   "next": f"run `sanctions-au refresh --source {source}`"}
@@ -167,17 +176,27 @@ class Screener:
         if not 1 <= len(subjects) <= MAX_BATCH:
             raise ValueError(f"send between 1 and {MAX_BATCH} subjects per call")
         at = at or store.now()
-        results = [self.screen(s, sources, at) for s in subjects]
+        datasets = self.datasets(sources)
+        results = []
+        for s in subjects:
+            try:
+                results.append(self.screen(s, sources, at, datasets))
+            except ValueError as exc:  # one bad subject is reported in its place, not fatal to the batch
+                results.append({"ref": s.ref, "subject": s.model_dump(exclude_none=True, exclude={"ref"}),
+                                "overall": "invalid_input", "error": str(exc)})
         counts: dict[str, int] = {}
         for r in results:
             counts[r["overall"]] = counts.get(r["overall"], 0) + 1
-        return {"summary": {"subjects": len(results), **counts}, "results": results, **self.envelope(sources, at)}
+        return {"summary": {"subjects": len(results), **counts}, "results": results,
+                **self.envelope(sources, at, datasets)}
 
-    def envelope(self, sources: str, at: dt.datetime) -> dict[str, Any]:
+    def envelope(self, sources: str, at: dt.datetime,
+                 datasets: dict[str, store.Dataset | None] | None = None) -> dict[str, Any]:
         """What every response carries once: which datasets were used, how old they are, the caveats."""
+        datasets = self.datasets(sources) if datasets is None else datasets
         versions, warnings = {}, []
         for source in (s for s in store.SOURCES if sources in ("all", s)):
-            ds = self.dataset(source)
+            ds = datasets.get(source)
             if ds is None:
                 warnings.append(f"No {source.upper()} dataset is installed, so it was not screened. "
                                 f"Run `sanctions-au refresh --source {source}`.")
@@ -224,11 +243,11 @@ class Screener:
         by_identifier: dict[str, list[dict[str, Any]]] = {}
         if imo:
             for rid in allowed:
-                if by_id[rid]["imo"] == imo:
+                if _digits(by_id[rid]["imo"]) == imo:
                     by_identifier.setdefault(rid, []).append(evidence("imo", imo, imo, "same IMO number"))
         if len(ident) >= 6:
-            for rid, text in idx["alnum_info"].items():
-                if rid in allowed and ident in text:
+            for rid, tokens in idx["info_tokens"].items():
+                if rid in allowed and has_identifier(tokens, ident):
                     by_identifier.setdefault(rid, []).append(evidence(
                         "identifier", s.identifier or "", "(inside additional_information)",
                         "the identifier appears in the record's additional information"))
@@ -311,7 +330,7 @@ class Screener:
                 hits.setdefault(rid, []).extend((t, m, n, q) for t, m, n in found)
         ids: dict[str, dict[str, Any]] = {}
         for rid in allowed:
-            reg = by_id[rid]["abn"] or ""
+            reg = _digits(by_id[rid]["abn"])
             if len(abn) == 11 and reg == abn:
                 ids[rid] = evidence("abn", abn, reg, "same ABN")
             elif len(acn) == 9 and reg == acn:  # the register's ABN field holds 9 digits for some records
@@ -325,7 +344,8 @@ class Screener:
             ev = [evidence("name", q.text, n.display, f"{m}; matched the record's {n.field.replace('_', ' ')}")
                   for _, m, n, q in found[:3]] + ([ids[rid]] if rid in ids else [])
             conflicts, notes = [], list(notes_all)
-            if len(abn) == 11 and r["abn"] and len(r["abn"]) == 11 and r["abn"] != abn and rid not in ids:
+            reg_abn = _digits(r["abn"])
+            if len(abn) == 11 and len(reg_abn) == 11 and reg_abn != abn and rid not in ids:
                 conflicts.append(f"ABN {abn} differs from the register's ABN {r['abn']}")
             name_mismatch = rid in ids and bool(queries) and not found
             if name_mismatch:

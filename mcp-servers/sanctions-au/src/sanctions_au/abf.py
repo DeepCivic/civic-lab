@@ -79,7 +79,7 @@ def parse(raw: bytes) -> list[dict[str, Any]]:
             raise DatasetError(f"ABF record {i} is missing expected fields; the register layout may have changed")
         name = _s(row["sponsorname"]) or ""
         pending = name.endswith("*")  # the page's footnote: "* Administrative Review Tribunal review pending"
-        status = re.search(r"alt='([^']*)'", row["amountstatus"] or "")
+        status = re.search(r"alt='([^']*)'", _s(row["amountstatus"]) or "")
         digest = hashlib.sha256(json.dumps(row, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
         obligations = _s(row["obligationbreached"])
         out.append({

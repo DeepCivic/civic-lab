@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
         local = args.dfat_file if source == "dfat" else args.abf_file
         try:
             report[source] = refresh_source(source, local, args.force)
-        except (store.DatasetError, httpx.HTTPError, OSError) as exc:
+        except (ValueError, httpx.HTTPError, OSError) as exc:  # ValueError includes DatasetError
             failed = True
             hint = (" If the site refuses automated downloads, save the file in a browser and use "
                     "--dfat-file." if source == "dfat" and not local else "")

@@ -44,6 +44,15 @@ def _date(v: object) -> str | None:
     return _s(v)
 
 
+def _dob(v: object) -> str | None:
+    """Date of birth is usually free text, but a cell typed as a date arrives as a day number. A whole
+    number that is a plausible year is kept as the year; any other number is converted to a date, so
+    the birth year can still be compared."""
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return str(int(v)) if float(v).is_integer() and 1800 <= v <= 2100 else _date(v)
+    return _s(v)
+
+
 def parse(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Return (records, facts about the file)."""
     try:
@@ -95,7 +104,7 @@ def parse(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         imo = _s(cell(row, "IMO Number"))
         out.append({
             **rec,
-            "date_of_birth": _s(cell(row, "Date of Birth")),
+            "date_of_birth": _dob(cell(row, "Date of Birth")),
             "place_of_birth": _s(cell(row, "Place of Birth")),
             "citizenship": _s(cell(row, "Citizenship")),
             "address": _s(cell(row, "Address")),

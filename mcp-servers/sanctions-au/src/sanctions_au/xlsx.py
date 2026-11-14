@@ -69,19 +69,22 @@ def read_first_sheet(path: Path) -> tuple[str, list[list[object]]]:
         for c in row.findall("m:c", _NS):
             kind, v = c.get("t"), c.find("m:v", _NS)
             value: object
-            if kind == "inlineStr":
-                value = _text(c)
-            elif v is None or v.text is None:
-                continue
-            elif kind == "s":
-                value = shared[int(v.text)]
-            elif kind == "b":
-                value = v.text == "1"
-            elif kind in ("str", "e"):
-                value = v.text
-            else:
-                num = float(v.text)
-                value = int(num) if num.is_integer() else num
+            try:
+                if kind == "inlineStr":
+                    value = _text(c)
+                elif v is None or v.text is None:
+                    continue
+                elif kind == "s":
+                    value = shared[int(v.text)]
+                elif kind == "b":
+                    value = v.text == "1"
+                elif kind in ("str", "e"):
+                    value = v.text
+                else:
+                    num = float(v.text)
+                    value = int(num) if num.is_integer() else num
+            except (ValueError, IndexError, OverflowError) as exc:
+                raise XlsxError(f"cell {c.get('r', '?')} holds an unreadable value ({exc})") from exc
             cells[_col(c.get("r", ""))] = value
         rows.append([cells.get(i) for i in range(max(cells) + 1)] if cells else [])
     return first.get("name", ""), rows

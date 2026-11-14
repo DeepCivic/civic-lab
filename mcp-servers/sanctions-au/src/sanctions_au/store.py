@@ -132,14 +132,19 @@ def commit(source: str, raw_file: Path, records: list[dict[str, Any]], extra_met
     digest = _sha256(raw_file)
     ptr = pointer(root, source)
     previous: dict[str, Any] | None = None
+    intact = False
     if ptr:
+        snap = root / "snapshots" / source / ptr["snapshot_id"]
         try:
-            previous = json.loads((root / "snapshots" / source / ptr["snapshot_id"] / "meta.json").read_text("utf-8"))
-        except (OSError, ValueError):
+            previous = json.loads((snap / "meta.json").read_text("utf-8"))
+            intact = _sha256(snap / "records.jsonl") == previous["records_sha256"]
+        except (OSError, ValueError, KeyError, TypeError):
             previous = None  # a damaged current snapshot must not block its own replacement
-    prev_count = previous["record_count"] if previous else None
+    prev_count = previous.get("record_count") if previous else None
 
-    if previous and previous["source_sha256"] == digest:
+    # Identical source and an intact snapshot: only the confirmation time changes. A damaged
+    # snapshot is never confirmed; the same source is written again as a new snapshot.
+    if previous and intact and previous.get("source_sha256") == digest:
         _write_atomic(root / "current" / f"{source}.json",
                       json.dumps({"snapshot_id": ptr["snapshot_id"], "checked_at": at.isoformat()}))
         return CommitResult("unchanged", f"{source}:{ptr['snapshot_id']}", len(records), prev_count)
@@ -150,6 +155,10 @@ def commit(source: str, raw_file: Path, records: list[dict[str, Any]], extra_met
                            "dataset was kept. Re-run with --force if the drop is real.")
 
     snapshot_id = f"{at.strftime('%Y%m%dT%H%M%SZ')}-{digest[:10]}"
+    n = 1
+    while (root / "snapshots" / source / snapshot_id).exists():  # e.g. repairing a snapshot written this second
+        n += 1
+        snapshot_id = f"{at.strftime('%Y%m%dT%H%M%SZ')}-{digest[:10]}-{n}"
     final = root / "snapshots" / source / snapshot_id
     final.parent.mkdir(parents=True, exist_ok=True)
     building = Path(tempfile.mkdtemp(dir=final.parent, prefix=".building-"))

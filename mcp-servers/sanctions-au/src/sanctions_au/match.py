@@ -105,6 +105,28 @@ def alnum(text: str) -> str:
     return re.sub(r"[^0-9A-Z]", "", unicodedata.normalize("NFKD", text).upper())
 
 
+def id_tokens(text: str) -> list[str]:
+    """The letter-and-digit runs of a text, upper-cased, in order: "Passport no. FX 123-4567" gives
+    ["PASSPORT", "NO", "FX", "123", "4567"]."""
+    t = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c)).upper()
+    return re.findall(r"[0-9A-Z]+", t)
+
+
+def has_identifier(tokens: list[str], ident: str) -> bool:
+    """Whether `ident` (as alnum() gives it) is one whole run, or several adjacent runs written with
+    spaces or punctuation between them. It must start and end on a run boundary, so part of a
+    longer number never matches: "012345" is not found in "7012345678"."""
+    for i in range(len(tokens)):
+        acc = ""
+        for tok in tokens[i:]:
+            acc += tok
+            if acc == ident:
+                return True
+            if not ident.startswith(acc):
+                break
+    return False
+
+
 def years(text: str | None) -> set[int]:
     return {int(y) for y in re.findall(r"\b(1[89]\d\d|20\d\d)\b", text or "")}
 

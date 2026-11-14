@@ -296,7 +296,7 @@ class Client:
         limit = limit if 1 <= limit <= AUTOCOMPLETE_MAX else AUTOCOMPLETE_MAX
         try:
             data = self.get("/autocompletions", {"field": "fulltext", "q": prefix.strip()}).get("data", [])
-            sugg = [{"lei": ((d.get("relationships") or {}).get("lei-records") or {}).get("data", {}).get("id"),
+            sugg = [{"lei": ((((d.get("relationships") or {}).get("lei-records") or {}).get("data")) or {}).get("id"),
                      "value": (d.get("attributes") or {}).get("value")} for d in data]
         except GleifError:  # the typo-tolerant search is a different, weaker answer, but better than none
             recs, _ = self._search({"filter[fulltext]": prefix.strip(), "page[size]": limit})
@@ -347,9 +347,16 @@ class Client:
 
     def issuers(self, limit: int = 100) -> dict[str, Any]:
         limit = limit if 1 <= limit <= 1000 else 100
-        body = self.get("/lei-issuers", {"page[size]": 200})
-        items = [self._issuer(i) for i in body.get("data", [])]
-        total = (self._page(body) or {}).get("total", len(items))
+        items: list[dict[str, Any]] = []
+        total, page = 0, 1
+        while True:  # GLEIF serves at most 200 a page
+            body = self.get("/lei-issuers", {"page[size]": min(limit, 200), "page[number]": page})
+            items += [self._issuer(i) for i in body.get("data") or []]
+            pg = self._page(body)
+            total = pg["total"] if pg else len(items)
+            if len(items) >= limit or not pg or pg["currentPage"] >= pg["lastPage"] or not body.get("data"):
+                break
+            page += 1
         return {"count": len(items[:limit]), "total": total, "issuers": items[:limit], **({"truncated": True} if total > limit else {})}
 
     def reporting_exceptions(self, raw: str) -> dict[str, Any]:
