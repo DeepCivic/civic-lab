@@ -25,7 +25,7 @@ except ImportError:  # mcp 1.x
 
     _MCP_V2 = False
 
-from . import store
+from . import gleif_tools, store
 from .service import MAX_BATCH, Screener, Subject, SubjectType
 
 INSTRUCTIONS = """\
@@ -47,6 +47,13 @@ Screening makes no network call, and nothing about a subject leaves this machine
   coincidences. A name alone never reaches 'high'.
 - screen_batch screens up to 100 subjects in one call. get_record returns the full record for a match.
 - The data is refreshed outside the server with `sanctions-au refresh`; dataset_status says how old it is.
+
+Separately, twelve GLEIF tools look up Legal Entity Identifiers (lei_lookup, validate_lei, batch_lei_lookup,
+search_entity, search_by_bic, search_by_isin, search_by_country, get_relationships, autocomplete, get_lei_issuer,
+list_lei_issuers, get_reporting_exceptions). Unlike screening, they send what you ask about to api.gleif.org, so
+they are off unless the operator sets SANCTIONS_ENABLE_GLEIF=1; if one reports 'disabled', tell the user, do not
+retry. An LEI match is identity information, not a sanctions result. An entity having no parent is normal and is
+explained by get_reporting_exceptions.
 """
 
 mcp = _Server("sanctions", instructions=INSTRUCTIONS)
@@ -147,6 +154,9 @@ def dataset_status() -> dict[str, Any]:
     """Which datasets are installed: version, record count, when each was last confirmed against the
     published source, its age, whether it is stale, and the SHA-256 of the source file it came from."""
     return screener().status()
+
+
+gleif_tools.register(mcp, anticipated)
 
 
 def main() -> None:

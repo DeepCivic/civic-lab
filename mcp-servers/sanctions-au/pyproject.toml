@@ -1,12 +1,12 @@
 [project]
 name = "sanctions-au"
-version = "0.1.0"
-description = "MCP server for screening against Australian sanctions data: the DFAT Consolidated List and the ABF Register of Sanctioned Sponsors, from locally held, versioned snapshots."
+version = "0.2.0"
+description = "MCP server for screening against Australian sanctions data (the DFAT Consolidated List and the ABF Register of Sanctioned Sponsors, from local versioned snapshots), plus optional GLEIF LEI lookups."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.15"
 authors = [{ name = "DeepCivic" }]
-keywords = ["mcp", "sanctions", "dfat", "abf", "screening", "australia", "compliance"]
+keywords = ["mcp", "sanctions", "dfat", "abf", "screening", "australia", "compliance", "gleif", "lei"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",

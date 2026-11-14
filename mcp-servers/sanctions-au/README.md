@@ -1,7 +1,8 @@
 # Sanctions MCP (Australia)
 
 An [MCP](https://modelcontextprotocol.io) server that screens people, organisations, vessels and
-sponsors against two Australian sources, from **locally held, versioned snapshots**:
+sponsors against two Australian sources, from **locally held, versioned snapshots**, and (optionally) looks up
+Legal Entity Identifiers at GLEIF:
 
 - the **DFAT Consolidated List** (sanctions designations), and
 - the **ABF Register of Sanctioned Sponsors** (sponsors sanctioned for breaching their obligations).
@@ -16,6 +17,11 @@ sponsors against two Australian sources, from **locally held, versioned snapshot
 | `screen_batch` | Up to 100 subjects in one call, for onboarding, supplier review and rescreening. |
 | `get_record` | The full stored record behind a match, including every DFAT alias. |
 | `dataset_status` | Installed dataset versions, age, staleness, record counts and source hashes. |
+| *12 GLEIF tools* | Optional LEI lookups, off by default. See [GLEIF lookups](#gleif-lookups-optional). |
+
+**Optional GLEIF tools (off by default):** `lei_lookup`, `validate_lei`, `batch_lei_lookup`, `search_entity`,
+`search_by_bic`, `search_by_isin`, `search_by_country`, `get_relationships`, `autocomplete`, `get_lei_issuer`,
+`list_lei_issuers`, `get_reporting_exceptions`. See [GLEIF lookups](#gleif-lookups-optional).
 
 ## Quick start
 
@@ -98,6 +104,20 @@ An abridged result:
 - **Neither source is a complete picture of a person's or company's exposure.** Related parties, ownership and
   control are not in either dataset.
 
+## GLEIF lookups (optional)
+
+Twelve tools look up Legal Entity Identifiers at [GLEIF](https://www.gleif.org), rebuilt from
+[olgasafonova/gleif-mcp-server](https://github.com/olgasafonova/gleif-mcp-server) with the same tool names and output keys.
+**They are off unless `SANCTIONS_ENABLE_GLEIF=1`**, because, unlike screening, they send what you ask about to
+`api.gleif.org`. Add `"env": { "SANCTIONS_ENABLE_GLEIF": "1" }` to your client config to turn them on. With it off,
+`validate_lei` still checks format and check digits offline.
+
+An LEI says who an entity is, not whether it is sanctioned: use it to confirm identity, then screen the name. A
+record with no parent is normal; `get_reporting_exceptions` returns why GLEIF says it has none. The rebuild fixes
+several defects in the Go server (the reporting-exceptions URL and field names, the ISIN path, relationship fields,
+8-character BICs). They are recorded, with what was checked and what was not, in
+[docs/gleif-upstream-notes.md](docs/gleif-upstream-notes.md).
+
 ## Docker
 
 The image holds no data and defaults to a stdio server:
@@ -111,7 +131,7 @@ docker run --rm -v sanctions-data:/data ghcr.io/deepcivic/sanctions-au refresh
   "args": ["run", "-i", "--rm", "--network", "none", "-v", "sanctions-data:/data:ro", "ghcr.io/deepcivic/sanctions-au"] } } }
 ```
 
-`--network none` is safe because screening never needs the network. `serve --http` serves streamable HTTP
+`--network none` is safe because screening never needs the network (leave `SANCTIONS_ENABLE_GLEIF` unset). `serve --http` serves streamable HTTP
 (stateless, `/mcp`) on `HOST:PORT`, loopback by default. **It has no authentication of its own**: put it behind your
 platform's authentication.
 

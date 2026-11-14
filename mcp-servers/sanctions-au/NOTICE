@@ -23,3 +23,8 @@ The ABF register page fills its table from an undocumented endpoint of the ABF's
 refresh command makes the same two requests as the page, once per refresh, identifying itself as
 sanctions-au. That endpoint may change or be withdrawn without notice, in which case a refresh
 fails and keeps the previous data.
+
+GLEIF lookups (optional, off by default) query the public GLEIF API at https://api.gleif.org. The tool surface
+and behaviour follow olgasafonova/gleif-mcp-server (MIT), rewritten in Python rather than copied. GLEIF's terms
+of use for the data have NOT been checked by the authors of this package. Unlike sanctions screening, a GLEIF
+lookup sends what you ask about to GLEIF.

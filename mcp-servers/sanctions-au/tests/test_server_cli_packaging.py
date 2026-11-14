@@ -14,7 +14,12 @@ def test_tool_surface():
     import asyncio
     listing = server.mcp.list_tools()
     tools = asyncio.run(listing) if asyncio.iscoroutine(listing) else listing
-    assert {t.name for t in tools} == {"screen_subject", "screen_batch", "get_record", "dataset_status"}
+    names = {t.name for t in tools}
+    assert {"screen_subject", "screen_batch", "get_record", "dataset_status"} <= names
+    assert names - {"screen_subject", "screen_batch", "get_record", "dataset_status"} == {
+        "lei_lookup", "validate_lei", "batch_lei_lookup", "search_entity", "search_by_bic", "search_by_isin",
+        "search_by_country", "get_relationships", "autocomplete", "get_lei_issuer", "list_lei_issuers",
+        "get_reporting_exceptions"}
 
 
 def test_tools_return_results_and_report_expected_failures(root):
