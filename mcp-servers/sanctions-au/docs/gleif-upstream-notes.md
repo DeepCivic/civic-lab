@@ -78,8 +78,9 @@ returned a JSON error body, not the HTML page described above; the finding is th
 ## Where the Python server is deliberately different
 
 - **Off by default.** Sanctions screening never leaves the machine, which the requirement it was built for depends
-  on. GLEIF lookups send names and LEIs to `api.gleif.org`, so every GLEIF tool refuses to run until the operator sets
-  `SANCTIONS_ENABLE_GLEIF=1`. `validate_lei` still checks format and check digits offline when off.
+  on. GLEIF lookups send names and LEIs to `api.gleif.org`, so no GLEIF tool is offered to the client, and each refuses to run if called directly,
+  until the operator sets `SANCTIONS_ENABLE_GLEIF=1`. Screening has its own switch, `SANCTIONS_ENABLE_SCREENING` (on by
+  default), so either group can be configured off.
 - No single-flight collapsing of concurrent identical requests (the Go server has it). Requests share a token-bucket
   rate limiter, retries with backoff, and a TTL cache that copies values in and out, so the rate limit still holds.
 - The LEI record returns `lei`, `entity` and `registration` as GLEIF sends them, rather than a fixed projection.

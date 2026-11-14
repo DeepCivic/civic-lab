@@ -23,6 +23,22 @@ Legal Entity Identifiers at GLEIF:
 `search_by_bic`, `search_by_isin`, `search_by_country`, `get_relationships`, `autocomplete`, `get_lei_issuer`,
 `list_lei_issuers`, `get_reporting_exceptions`. See [GLEIF lookups](#gleif-lookups-optional).
 
+## Configuration
+
+All by environment variable, in the same style as the sibling servers (a flag is on for `1`, `true`, `yes` or `on`).
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `SANCTIONS_ENABLE_SCREENING` | on | The four screening tools. Never uses the network. |
+| `SANCTIONS_ENABLE_GLEIF` | **off** | The twelve GLEIF tools. They send queries to `api.gleif.org`. |
+| `SANCTIONS_DATA_DIR` | `~/.local/share/sanctions-au` (`%LOCALAPPDATA%\sanctions-au` on Windows) | Where the snapshots live. |
+| `SANCTIONS_DFAT_MAX_AGE_DAYS`, `SANCTIONS_ABF_MAX_AGE_DAYS` | 7, 35 | Days before a staleness warning. |
+| `MCP_TRANSPORT`, `HOST`, `PORT` | stdio, `127.0.0.1`, `8000` | Streamable HTTP, as `serve --http`. |
+
+A group that is switched off is **not offered to the client at all**, and the server instructions describe only what is on.
+The two switches are independent: GLEIF alone, screening alone, or both. With both off the server starts, says so on
+stderr, and offers no tools.
+
 ## Quick start
 
 1. Install [uv](https://docs.astral.sh/uv/), then fetch the data once (this is the only step that uses the network):
@@ -108,9 +124,8 @@ An abridged result:
 
 Twelve tools look up Legal Entity Identifiers at [GLEIF](https://www.gleif.org), rebuilt from
 [olgasafonova/gleif-mcp-server](https://github.com/olgasafonova/gleif-mcp-server) with the same tool names and output keys.
-**They are off unless `SANCTIONS_ENABLE_GLEIF=1`**, because, unlike screening, they send what you ask about to
-`api.gleif.org`. Add `"env": { "SANCTIONS_ENABLE_GLEIF": "1" }` to your client config to turn them on. With it off,
-`validate_lei` still checks format and check digits offline.
+**They are off, and not even offered to the client, unless `SANCTIONS_ENABLE_GLEIF=1`**, because, unlike screening, they send what you ask about to
+`api.gleif.org`. Add `"env": { "SANCTIONS_ENABLE_GLEIF": "1" }` to your client config to turn them on.
 
 An LEI says who an entity is, not whether it is sanctioned: use it to confirm identity, then screen the name. A
 record with no parent is normal; `get_reporting_exceptions` returns why GLEIF says it has none. The rebuild fixes

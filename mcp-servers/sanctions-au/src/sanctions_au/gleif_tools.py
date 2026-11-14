@@ -2,27 +2,27 @@
 
 They keep the Go gleif-mcp-server's tool names and output keys, so prompts written for it still
 work. Unlike the screening tools they send queries to api.gleif.org, so each one refuses to run
-until the operator sets SANCTIONS_ENABLE_GLEIF=1.
+until the operator sets SANCTIONS_ENABLE_GLEIF=1, and are not even listed until then.
 """
 
 from __future__ import annotations
 
-import os
 from collections.abc import Callable
 from typing import Annotated, Any
 
 from pydantic import Field
 
+from . import config
 from .gleif import AUTOCOMPLETE_MAX, MAX_BATCH, Client, GleifError, check_digits_ok
 
-ENV = "SANCTIONS_ENABLE_GLEIF"
+ENV = config.GLEIF_ENV
 LEI = Annotated[str, Field(description="20-character LEI code, e.g. HWUPKR0MPOU8FGXBT394")]  # module level: annotations are resolved here
 _client: Client | None = None
 TOOLS: dict[str, Callable[..., Any]] = {}  # the registered functions by name, so tests can call them directly
 
 
 def enabled() -> bool:
-    return os.getenv(ENV, "").strip().lower() in ("1", "true", "yes")
+    return config.gleif_enabled()
 
 
 def client() -> Client:
@@ -36,6 +36,7 @@ def client() -> Client:
 
 
 def register(mcp: Any, anticipated: Callable[..., Any]) -> None:
+    """Define the tools, and offer them to the client only if the operator has turned them on."""
     try:  # tool hints (read-only, talks to an outside service); older SDKs may not take them
         from mcp.types import ToolAnnotations
         hints: dict[str, Any] = {"annotations": ToolAnnotations(readOnlyHint=True, idempotentHint=True, openWorldHint=True)}
@@ -45,7 +46,7 @@ def register(mcp: Any, anticipated: Callable[..., Any]) -> None:
     def tool(fn: Callable[..., Any]) -> Callable[..., Any]:
         wrapped = anticipated(fn)
         TOOLS[fn.__name__] = wrapped
-        return mcp.tool(**hints)(wrapped)
+        return mcp.tool(**hints)(wrapped) if enabled() else wrapped
 
     @tool
     def lei_lookup(lei: LEI) -> dict[str, Any]:

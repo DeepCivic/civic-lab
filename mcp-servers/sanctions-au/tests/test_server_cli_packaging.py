@@ -5,21 +5,71 @@ from pathlib import Path
 import pytest
 
 import sanctions_au
-from sanctions_au import cli, server
+from sanctions_au import cli, config, gleif_tools, server
 
 PKG = Path(__file__).resolve().parent.parent
 
 
-def test_tool_surface():
+SCREENING = {"screen_subject", "screen_batch", "get_record", "dataset_status"}
+GLEIF = {"lei_lookup", "validate_lei", "batch_lei_lookup", "search_entity", "search_by_bic", "search_by_isin",
+         "search_by_country", "get_relationships", "autocomplete", "get_lei_issuer", "list_lei_issuers",
+         "get_reporting_exceptions"}
+
+
+@pytest.fixture
+def offered(monkeypatch):
+    """Build the server under a given configuration and return (tool names, instructions)."""
     import asyncio
-    listing = server.mcp.list_tools()
-    tools = asyncio.run(listing) if asyncio.iscoroutine(listing) else listing
-    names = {t.name for t in tools}
-    assert {"screen_subject", "screen_batch", "get_record", "dataset_status"} <= names
-    assert names - {"screen_subject", "screen_batch", "get_record", "dataset_status"} == {
-        "lei_lookup", "validate_lei", "batch_lei_lookup", "search_entity", "search_by_bic", "search_by_isin",
-        "search_by_country", "get_relationships", "autocomplete", "get_lei_issuer", "list_lei_issuers",
-        "get_reporting_exceptions"}
+    import importlib
+
+    def load(**env):
+        for name in (config.SCREENING_ENV, config.GLEIF_ENV):
+            monkeypatch.delenv(name, raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        importlib.reload(gleif_tools)
+        importlib.reload(server)
+        listing = server.mcp.list_tools()
+        tools = asyncio.run(listing) if asyncio.iscoroutine(listing) else listing
+        return {t.name for t in tools}, server.INSTRUCTIONS
+
+    yield load
+    monkeypatch.undo()  # back to the default configuration for every later test
+    importlib.reload(gleif_tools)
+    importlib.reload(server)
+
+
+def test_by_default_screening_is_offered_and_gleif_is_not(offered):
+    names, instructions = offered()
+    assert names == SCREENING
+    assert "Screens people" in instructions and "GLEIF" not in instructions
+
+
+def test_each_group_can_be_switched_on_and_off_independently(offered):
+    assert offered(SANCTIONS_ENABLE_GLEIF="1")[0] == SCREENING | GLEIF
+    names, instructions = offered(SANCTIONS_ENABLE_SCREENING="0", SANCTIONS_ENABLE_GLEIF="1")
+    assert names == GLEIF and "Screens people" not in instructions and "GLEIF tools" in instructions
+    names, instructions = offered(SANCTIONS_ENABLE_SCREENING="off")
+    assert names == set() and "No tools are enabled" in instructions
+
+
+def test_switching_both_off_says_so_on_stderr(offered, capsys):
+    offered(SANCTIONS_ENABLE_SCREENING="no")
+    assert "offers no tools" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("value, expected", [("1", True), ("TRUE", True), (" Yes ", True), ("on", True),
+                                              ("0", False), ("false", False), ("off", False), ("nonsense", False)])
+def test_flags_use_the_sibling_servers_convention(monkeypatch, value, expected):
+    monkeypatch.setenv(config.GLEIF_ENV, value)
+    assert config.gleif_enabled() is expected
+
+
+def test_flag_defaults(monkeypatch):
+    monkeypatch.delenv(config.SCREENING_ENV, raising=False)
+    monkeypatch.delenv(config.GLEIF_ENV, raising=False)
+    monkeypatch.setenv(config.SCREENING_ENV, "")
+    assert config.screening_enabled() is True and config.gleif_enabled() is False
 
 
 def test_tools_return_results_and_report_expected_failures(root):

@@ -25,13 +25,12 @@ except ImportError:  # mcp 1.x
 
     _MCP_V2 = False
 
-from . import gleif_tools, store
+from . import config, gleif_tools, store
 from .service import MAX_BATCH, Screener, Subject, SubjectType
 
-INSTRUCTIONS = """\
-Screens people, organisations, vessels and sponsors against two Australian sources, using locally
-held snapshots: the DFAT Consolidated List (sanctions designations) and the ABF Register of
-Sanctioned Sponsors. Unofficial: not affiliated with or endorsed by DFAT, the ABF or the Commonwealth.
+_SCREENING = """\
+Screens people, organisations, vessels and sponsors against two Australian sources, using locally held
+snapshots: the DFAT Consolidated List (sanctions designations) and the ABF Register of Sanctioned Sponsors.
 Screening makes no network call, and nothing about a subject leaves this machine.
 
 - Results are potential matches, never legal conclusions. Do not tell the user a subject IS sanctioned,
@@ -47,14 +46,34 @@ Screening makes no network call, and nothing about a subject leaves this machine
   coincidences. A name alone never reaches 'high'.
 - screen_batch screens up to 100 subjects in one call. get_record returns the full record for a match.
 - The data is refreshed outside the server with `sanctions-au refresh`; dataset_status says how old it is.
-
-Separately, twelve GLEIF tools look up Legal Entity Identifiers (lei_lookup, validate_lei, batch_lei_lookup,
-search_entity, search_by_bic, search_by_isin, search_by_country, get_relationships, autocomplete, get_lei_issuer,
-list_lei_issuers, get_reporting_exceptions). Unlike screening, they send what you ask about to api.gleif.org, so
-they are off unless the operator sets SANCTIONS_ENABLE_GLEIF=1; if one reports 'disabled', tell the user, do not
-retry. An LEI match is identity information, not a sanctions result. An entity having no parent is normal and is
-explained by get_reporting_exceptions.
 """
+
+_GLEIF = """\
+Twelve GLEIF tools look up Legal Entity Identifiers (lei_lookup, validate_lei, batch_lei_lookup, search_entity,
+search_by_bic, search_by_isin, search_by_country, get_relationships, autocomplete, get_lei_issuer,
+list_lei_issuers, get_reporting_exceptions). Unlike screening, they send what you ask about to api.gleif.org;
+the operator has turned them on. An LEI match is identity information, not a sanctions result. An entity having
+no parent is normal and is explained by get_reporting_exceptions.
+"""
+
+
+def build_instructions() -> str:
+    """Describe only the tool groups the operator has turned on."""
+    bodies, bodies_from = [], []
+    if config.screening_enabled():
+        bodies.append(_SCREENING)
+        bodies_from += ["DFAT", "the ABF"]
+    if config.gleif_enabled():
+        bodies.append(_GLEIF)
+        bodies_from.append("GLEIF")
+    sources = ", ".join(bodies_from) + (", " if bodies_from else "")
+    parts = [f"Unofficial: not affiliated with or endorsed by {sources}or the Commonwealth.\n", *bodies]
+    if not bodies:
+        parts.append("No tools are enabled. The operator has turned off both screening and GLEIF lookups.\n")
+    return "\n".join(parts)
+
+
+INSTRUCTIONS = build_instructions()
 
 mcp = _Server("sanctions", instructions=INSTRUCTIONS)
 _screener: Screener | None = None
@@ -82,11 +101,16 @@ def anticipated(fn: F) -> F:
     return wrapper  # type: ignore[return-value]
 
 
+def screening_tool(fn: F) -> F:
+    """Offer a screening tool to the client only if screening is enabled. The function itself always exists."""
+    return mcp.tool()(fn) if config.screening_enabled() else fn
+
+
 Sources = Literal["all", "dfat", "abf"]
 SOURCES_HELP = "all (default), dfat (Consolidated List only) or abf (Register of Sanctioned Sponsors only)."
 
 
-@mcp.tool()
+@screening_tool
 @anticipated
 def screen_subject(
     name: Annotated[str | None, Field(description="Person, organisation, vessel or sponsor name.")] = None,
@@ -119,7 +143,7 @@ def screen_subject(
     return {**s.screen(subject, sources, now), **s.envelope(sources, now)}
 
 
-@mcp.tool()
+@screening_tool
 @anticipated
 def screen_batch(
     subjects: Annotated[list[Subject], Field(description=f"1 to {MAX_BATCH} subjects. Give each a `ref` of your own "
@@ -135,7 +159,7 @@ def screen_batch(
     return screener().screen_many(subjects, sources)
 
 
-@mcp.tool()
+@screening_tool
 @anticipated
 def get_record(
     source: Annotated[Literal["dfat", "abf"], Field(description="Which dataset the record is in.")],
@@ -148,7 +172,7 @@ def get_record(
     return screener().record(source, record_id)
 
 
-@mcp.tool()
+@screening_tool
 @anticipated
 def dataset_status() -> dict[str, Any]:
     """Which datasets are installed: version, record count, when each was last confirmed against the
@@ -157,6 +181,9 @@ def dataset_status() -> dict[str, Any]:
 
 
 gleif_tools.register(mcp, anticipated)
+if not (config.screening_enabled() or config.gleif_enabled()):
+    print("sanctions-au: both tool groups are switched off, so this server offers no tools. "
+          f"Set {config.SCREENING_ENV} or {config.GLEIF_ENV}.", file=sys.stderr)
 
 
 def main() -> None:

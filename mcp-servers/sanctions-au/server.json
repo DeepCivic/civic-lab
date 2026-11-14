@@ -24,6 +24,12 @@
           "format": "string"
         },
         {
+          "name": "SANCTIONS_ENABLE_SCREENING",
+          "description": "Set to 0 to switch off the DFAT/ABF screening tools. On by default. Screening never uses the network.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
           "name": "SANCTIONS_ENABLE_GLEIF",
           "description": "Set to 1 to allow the GLEIF LEI tools, which send queries to api.gleif.org. Off by default; sanctions screening never uses the network.",
           "isRequired": false,
