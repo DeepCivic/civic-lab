@@ -1,0 +1,30 @@
+sanctions-au
+Copyright DeepCivic contributors. Licensed under the Apache License 2.0.
+
+sanctions-au is an unofficial, independent tool. It is not affiliated with, endorsed or approved
+by the Department of Foreign Affairs and Trade, the Australian Border Force, the Department of
+Home Affairs or the Commonwealth of Australia.
+
+This software contains no list data. `sanctions-au refresh` downloads, or imports, two published
+datasets, and screens only against the copy you hold:
+
+* DFAT Consolidated List: published by the Department of Foreign Affairs and Trade at
+  https://www.dfat.gov.au/international-relations/security/sanctions/consolidated-list
+* ABF Register of Sanctioned Sponsors: published by the Australian Border Force at
+  https://www.abf.gov.au/about-us/what-we-do/sponsor-sanctions/register-of-sanctioned-sponsors
+  The page states that it is published under subsection 140K(4) of the Migration Act 1958.
+
+The reuse licences and terms of both publications have NOT been checked by the authors of this
+package. Check them before redistributing a snapshot or a result derived from one. The ABF register
+includes the names of individuals who are sole-trader sponsors; treat results as personal
+information where they identify a person.
+
+The ABF register page fills its table from an undocumented endpoint of the ABF's own site. The
+refresh command makes the same two requests as the page, once per refresh, identifying itself as
+sanctions-au. That endpoint may change or be withdrawn without notice, in which case a refresh
+fails and keeps the previous data.
+
+GLEIF lookups (optional, off by default) query the public GLEIF API at https://api.gleif.org. The tool surface
+and behaviour follow olgasafonova/gleif-mcp-server (MIT), rewritten in Python rather than copied. GLEIF's terms
+of use for the data have NOT been checked by the authors of this package. Unlike sanctions screening, a GLEIF
+lookup sends what you ask about to GLEIF.

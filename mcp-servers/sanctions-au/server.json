@@ -1,0 +1,41 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.DeepCivic/sanctions-au",
+  "title": "Australian sanctions screening (unofficial)",
+  "description": "Unofficial: screen subjects against the DFAT Consolidated List and ABF Register of Sanctioned Sponsors from local snapshots, plus optional GLEIF LEI lookups.",
+  "version": "0.2.0",
+  "repository": {
+    "url": "https://github.com/DeepCivic/civic-lab",
+    "source": "github",
+    "subfolder": "mcp-servers/sanctions-au"
+  },
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/deepcivic/sanctions-au:0.2.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SANCTIONS_DATA_DIR",
+          "description": "Directory holding the dataset snapshots. The image defaults to /data.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "SANCTIONS_ENABLE_SCREENING",
+          "description": "Set to 0 to switch off the DFAT/ABF screening tools. On by default. Screening never uses the network.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "SANCTIONS_ENABLE_GLEIF",
+          "description": "Set to 1 to allow the GLEIF LEI tools, which send queries to api.gleif.org. Off by default; sanctions screening never uses the network.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
